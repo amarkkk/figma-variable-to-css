@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    :root {
+      --bg: #1a1a1a;
+      --bg-elevated: #242424;
+      --bg-highlight: #2d2d2d;
+      --text: #e0e0e0;
+      --text-muted: #888;
+      --accent: #ad9c62;
+      --accent-dim: rgba(173, 156, 98, 0.15);
+      --border: #3a3a3a;
+      --success: #4ade80;
+      --warning: #fbbf24;
+      --error: #f87171;
+    }
+    
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 12px;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    
+    /* Header */
+    .header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-elevated);
+    }
+    
+    .header h1 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+    
+    .header .subtitle {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    
+    /* Main content */
+    .main {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+    
+    /* Sidebar */
+    .sidebar {
+      width: 280px;
+      min-width: 280px;
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    
+    .sidebar-section {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .sidebar-section:last-child {
+      border-bottom: none;
+    }
+    
+    .sidebar-section h2 {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+    
+    /* Stats */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    
+    .stat-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px;
+      text-align: center;
+    }
+    
+    .stat-value {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--accent);
+    }
+    
+    .stat-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    
+    /* Options */
+    .option-group {
+      margin-bottom: 16px;
+    }
+    
+    .option-group:last-child {
+      margin-bottom: 0;
+    }
+    
+    .option-label {
+      font-size: 11px;
+      font-weight: 500;
+      margin-bottom: 8px;
+      display: block;
+    }
+    
+    .radio-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    
+    .radio-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+    
+    .radio-item input[type="radio"] {
+      accent-color: var(--accent);
+    }
+    
+    .radio-item span {
+      font-size: 11px;
+    }
+    
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      margin-bottom: 6px;
+    }
+    
+    .checkbox-item:last-child {
+      margin-bottom: 0;
+    }
+    
+    .checkbox-item input[type="checkbox"] {
+      accent-color: var(--accent);
+    }
+    
+    .checkbox-item span {
+      font-size: 11px;
+    }
+    
+    /* Preview panel */
+    .preview-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    
+    .preview-header {
+      padding: 12px 16px;
+      background: var(--bg-elevated);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .preview-header h2 {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+    }
+    
+    .preview-stats {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+    
+    .preview-content {
+      flex: 1;
+      overflow: auto;
+      padding: 16px;
+      background: var(--bg);
+    }
+    
+    .preview-code {
+      font-family: 'JetBrains Mono', 'SF Mono', monospace;
+      font-size: 11px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-all;
+      color: var(--text);
+    }
+    
+    .preview-placeholder {
+      color: var(--text-muted);
+      text-align: center;
+      padding: 40px;
+    }
+    
+    /* Errors */
+    .errors-panel {
+      padding: 12px 16px;
+      background: rgba(248, 113, 113, 0.1);
+      border-top: 1px solid var(--border);
+    }
+    
+    .errors-panel h3 {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--error);
+      margin-bottom: 8px;
+    }
+    
+    .error-item {
+      font-size: 11px;
+      color: var(--error);
+      padding: 4px 0;
+    }
+    
+    /* Footer */
+    .footer {
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+      background: var(--bg-elevated);
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+    
+    .btn {
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s;
+    }
+    
+    .btn-primary {
+      background: var(--accent);
+      color: #1a1a1a;
+    }
+    
+    .btn-primary:hover {
+      filter: brightness(1.1);
+    }
+    
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .btn-secondary {
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    
+    .btn-secondary:hover {
+      background: var(--bg-highlight);
+    }
+    
+    /* Loading state */
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      color: var(--text-muted);
+    }
+    
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 8px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Collection list */
+    .collection-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0 16px 16px;
+    }
+    
+    .collection-item {
+      padding: 8px 10px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      margin-bottom: 6px;
+    }
+    
+    .collection-name {
+      font-size: 11px;
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
+    
+    .collection-meta {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+    
+    .collection-badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 9px;
+      font-weight: 500;
+      text-transform: uppercase;
+      margin-left: 4px;
+    }
+    
+    .badge-breakpoint {
+      background: rgba(96, 165, 250, 0.2);
+      color: #60a5fa;
+    }
+    
+    .badge-theme {
+      background: rgba(167, 139, 250, 0.2);
+      color: #a78bfa;
+    }
+    
+    .badge-single {
+      background: var(--accent-dim);
+      color: var(--accent);
+    }
+    
+    /* Resize handle */
+    #resize-corner {
+      position: absolute;
+      right: 4px;
+      bottom: 4px;
+      cursor: nwse-resize;
+      z-index: 10000;
+      opacity: 0.6;
+    }
+    
+    #resize-corner:hover {
+      opacity: 1;
+    }
+    
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: var(--bg);
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: #4a4a4a;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Variable to CSS</h1>
+    <div class="subtitle">Export design tokens to CSS custom properties</div>
+  </div>
+  
+  <div class="main">
+    <div class="sidebar">
+      <div class="sidebar-section">
+        <h2>Collections</h2>
+        <div class="stats-grid" id="stats">
+          <div class="stat-card">
+            <div class="stat-value" id="collection-count">—</div>
+            <div class="stat-label">Collections</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="variable-count">—</div>
+            <div class="stat-label">Variables</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="collection-list" id="collection-list">
+        <div class="loading">
+          <div class="spinner"></div>
+          <span>Scanning collections...</span>
+        </div>
+      </div>
+      
+      <div class="sidebar-section">
+        <h2>Output Options</h2>
+        
+        <div class="option-group">
+          <label class="option-label">Scaling Mode</label>
+          <div class="radio-group">
+            <label class="radio-item">
+              <input type="radio" name="outputMode" value="fluid" checked>
+              <span>Fluid (clamp)</span>
+            </label>
+            <label class="radio-item">
+              <input type="radio" name="outputMode" value="stepped">
+              <span>Stepped (media queries only)</span>
+            </label>
+          </div>
+        </div>
+        
+        <div class="option-group">
+          <label class="option-label">Alias Handling</label>
+          <div class="radio-group">
+            <label class="radio-item">
+              <input type="radio" name="aliasMode" value="preserved" checked>
+              <span>Preserve var() references</span>
+            </label>
+            <label class="radio-item">
+              <input type="radio" name="aliasMode" value="resolved">
+              <span>Resolve to final values</span>
+            </label>
+          </div>
+        </div>
+        
+        <div class="option-group">
+          <label class="option-label">Dark Mode Output</label>
+          <div class="radio-group">
+            <label class="radio-item">
+              <input type="radio" name="darkMode" value="prefers-color-scheme" checked>
+              <span>prefers-color-scheme</span>
+            </label>
+            <label class="radio-item">
+              <input type="radio" name="darkMode" value="class">
+              <span>.dark class</span>
+            </label>
+            <label class="radio-item">
+              <input type="radio" name="darkMode" value="both">
+              <span>Both</span>
+            </label>
+          </div>
+        </div>
+        
+        <div class="option-group">
+          <label class="option-label">Additional Options</label>
+          <label class="checkbox-item">
+            <input type="checkbox" id="includeTimestamp" checked>
+            <span>Include timestamp</span>
+          </label>
+          <label class="checkbox-item">
+            <input type="checkbox" id="includeIds">
+            <span>Include variable IDs as comments</span>
+          </label>
+        </div>
+      </div>
+    </div>
+    
+    <div class="preview-panel">
+      <div class="preview-header">
+        <h2>CSS Preview</h2>
+        <div class="preview-stats" id="preview-stats"></div>
+      </div>
+      <div class="preview-content" id="preview-content">
+        <div class="preview-placeholder">
+          Click "Generate CSS" to preview the output
+        </div>
+      </div>
+      <div class="errors-panel" id="errors-panel" style="display: none;">
+        <h3>Warnings</h3>
+        <div id="error-list"></div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="footer">
+    <button class="btn btn-secondary" id="btn-cancel">Cancel</button>
+    <button class="btn btn-primary" id="btn-generate">Generate CSS</button>
+    <button class="btn btn-primary" id="btn-copy" disabled>Copy to Clipboard</button>
+    <button class="btn btn-secondary" id="btn-download" disabled>Download</button>
+  </div>
+  
+  <!-- Resize Handle -->
+  <svg
+    id="resize-corner"
+    xmlns="http://www.w3.org/2000/svg"
+    width="16"
+    height="16"
+    fill="#666666"
+    viewBox="0 0 256 256">
+    <path d="M213.66,133.66l-80,80a8,8,0,0,1-11.32-11.32l80-80a8,8,0,0,1,11.32,11.32Zm-16-99.32a8,8,0,0,0-11.32,0l-152,152a8,8,0,0,0,11.32,11.32l152-152A8,8,0,0,0,197.66,34.34Z"></path>
+  </svg>
+  
+  <script>
+    // ============================================
+    // STATE
+    // ============================================
+    let collections = [];
+    let generatedCSS = '';
+    
+    // ============================================
+    // UI ELEMENTS
+    // ============================================
+    const collectionCountEl = document.getElementById('collection-count');
+    const variableCountEl = document.getElementById('variable-count');
+    const collectionListEl = document.getElementById('collection-list');
+    const previewContentEl = document.getElementById('preview-content');
+    const previewStatsEl = document.getElementById('preview-stats');
+    const errorsPanelEl = document.getElementById('errors-panel');
+    const errorListEl = document.getElementById('error-list');
+    
+    const btnGenerate = document.getElementById('btn-generate');
+    const btnCopy = document.getElementById('btn-copy');
+    const btnDownload = document.getElementById('btn-download');
+    const btnCancel = document.getElementById('btn-cancel');
+    
+    // ============================================
+    // EVENT HANDLERS
+    // ============================================
+    btnGenerate.addEventListener('click', generateCSS);
+    btnCopy.addEventListener('click', copyToClipboard);
+    btnDownload.addEventListener('click', downloadCSS);
+    btnCancel.addEventListener('click', () => {
+      parent.postMessage({ pluginMessage: { type: 'cancel' } }, '*');
+    });
+    
+    // ============================================
+    // FUNCTIONS
+    // ============================================
+    function getOptions() {
+      return {
+        outputMode: document.querySelector('input[name="outputMode"]:checked').value,
+        aliasMode: document.querySelector('input[name="aliasMode"]:checked').value,
+        darkModeOutput: document.querySelector('input[name="darkMode"]:checked').value,
+        includeTimestamp: document.getElementById('includeTimestamp').checked,
+        includeIds: document.getElementById('includeIds').checked,
+        colorFormat: 'hex'
+      };
+    }
+    
+    function generateCSS() {
+      btnGenerate.disabled = true;
+      btnGenerate.textContent = 'Generating...';
+      previewContentEl.innerHTML = '<div class="loading"><div class="spinner"></div><span>Generating CSS...</span></div>';
+      
+      parent.postMessage({
+        pluginMessage: {
+          type: 'generate-css',
+          options: getOptions()
+        }
+      }, '*');
+    }
+    
+    function copyToClipboard() {
+      if (!generatedCSS) return;
+      
+      navigator.clipboard.writeText(generatedCSS).then(() => {
+        const originalText = btnCopy.textContent;
+        btnCopy.textContent = 'Copied!';
+        setTimeout(() => {
+          btnCopy.textContent = originalText;
+        }, 1500);
+      }).catch(err => {
+        console.error('Failed to copy:', err);
+      });
+    }
+    
+    function downloadCSS() {
+      if (!generatedCSS) return;
+      
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filename = `design-tokens-${timestamp}.css`;
+      
+      const blob = new Blob([generatedCSS], { type: 'text/css' });
+      const url = URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+    
+    function renderCollections() {
+      if (collections.length === 0) {
+        collectionListEl.innerHTML = '<div class="preview-placeholder">No collections found</div>';
+        return;
+      }
+      
+      let html = '';
+      for (const col of collections) {
+        const badgeClass = col.modeType === 'breakpoint' ? 'badge-breakpoint' :
+                          col.modeType === 'theme' ? 'badge-theme' : 'badge-single';
+        const badgeText = col.modeType === 'breakpoint' ? 'Responsive' :
+                         col.modeType === 'theme' ? 'Theme' : 'Single';
+        
+        html += `
+          <div class="collection-item">
+            <div class="collection-name">
+              ${col.name}
+              <span class="collection-badge ${badgeClass}">${badgeText}</span>
+            </div>
+            <div class="collection-meta">
+              ${col.variableCount} variables · ${col.modes.length} mode${col.modes.length > 1 ? 's' : ''}
+            </div>
+          </div>
+        `;
+      }
+      collectionListEl.innerHTML = html;
+    }
+    
+    function renderPreview(css, stats) {
+      generatedCSS = css;
+      
+      // Syntax highlight (simple)
+      const highlighted = css
+        .replace(/(\/\*[\s\S]*?\*\/)/g, '<span style="color: #6a9955;">$1</span>')
+        .replace(/(--[a-z0-9-]+)/g, '<span style="color: #9cdcfe;">$1</span>')
+        .replace(/(:root|@media|@supports)/g, '<span style="color: #c586c0;">$1</span>')
+        .replace(/(\d+(?:\.\d+)?(?:px|rem|vw|%)?)/g, '<span style="color: #b5cea8;">$1</span>')
+        .replace(/(clamp|calc|var)/g, '<span style="color: #dcdcaa;">$1</span>')
+        .replace(/(#[a-f0-9]{3,8})/gi, '<span style="color: #ce9178;">$1</span>');
+      
+      previewContentEl.innerHTML = `<pre class="preview-code">${highlighted}</pre>`;
+      previewStatsEl.textContent = `${stats.collections} collections · ${stats.variables} variables · ${(css.length / 1024).toFixed(1)} KB`;
+      
+      btnCopy.disabled = false;
+      btnDownload.disabled = false;
+      btnGenerate.disabled = false;
+      btnGenerate.textContent = 'Generate CSS';
+      
+      // Show errors if any
+      if (stats.errors && stats.errors.length > 0) {
+        errorsPanelEl.style.display = 'block';
+        errorListEl.innerHTML = stats.errors.map(e => `<div class="error-item">${e}</div>`).join('');
+      } else {
+        errorsPanelEl.style.display = 'none';
+      }
+    }
+    
+    // ============================================
+    // MESSAGE LISTENER
+    // ============================================
+    window.onmessage = (event) => {
+      const msg = event.data.pluginMessage;
+      if (!msg) return;
+      
+      if (msg.type === 'collections-scanned') {
+        collections = msg.collections;
+        collectionCountEl.textContent = msg.collections.length;
+        variableCountEl.textContent = msg.totalVariables;
+        renderCollections();
+      } else if (msg.type === 'css-generated') {
+        renderPreview(msg.output.css, msg.output.stats);
+      } else if (msg.type === 'error') {
+        previewContentEl.innerHTML = `<div class="preview-placeholder" style="color: var(--error);">Error: ${msg.message}</div>`;
+        btnGenerate.disabled = false;
+        btnGenerate.textContent = 'Generate CSS';
+      }
+    };
+    
+    // ============================================
+    // RESIZE HANDLE
+    // ============================================
+    const corner = document.getElementById('resize-corner');
+    
+    const resizeWindow = (e) => {
+      const size = {
+        w: Math.max(500, Math.floor(e.clientX + 5)),
+        h: Math.max(400, Math.floor(e.clientY + 5))
+      };
+      parent.postMessage({ pluginMessage: { type: 'resize', size } }, '*');
+    };
+    
+    corner.addEventListener('pointerdown', (e) => {
+      corner.onpointermove = resizeWindow;
+      corner.setPointerCapture(e.pointerId);
+    });
+    
+    corner.addEventListener('pointerup', (e) => {
+      corner.onpointermove = null;
+      corner.releasePointerCapture(e.pointerId);
+    });
+    
+    // ============================================
+    // INITIALIZATION
+    // ============================================
+    parent.postMessage({ pluginMessage: { type: 'scan-collections' } }, '*');
+  </script>
+</body>
+</html>
