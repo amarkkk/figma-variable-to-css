@@ -1,0 +1,15 @@
+{
+  "name": "figma-variable-to-css",
+  "version": "1.0.0",
+  "description": "Export Figma variables to CSS custom properties with clamp() fluid scaling",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch"
+  },
+  "devDependencies": {
+    "@figma/plugin-typings": "^1.50.0",
+    "typescript": "^5.0.0"
+  },
+  "author": "Márk Andrássy",
+  "license": "MIT"
+}
