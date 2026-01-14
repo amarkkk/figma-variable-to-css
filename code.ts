@@ -1,3 +1,5 @@
+/// <reference types="@figma/plugin-typings" />
+
 // Variable to CSS v1.0
 // Figma Plugin for exporting variable collections to CSS custom properties
 
@@ -27,7 +29,7 @@ interface VariableInfo {
   collectionId: string;
   collectionName: string;
   domain: string;
-  resolvedType: VariableResolvedDataType;
+  resolvedType: string;
   valuesByMode: Record<string, ProcessedValue>;
   isAlias: boolean;
   aliasTarget?: string;
@@ -77,7 +79,7 @@ const THEME_MODES = ['light', 'dark'];
 figma.showUI(__html__, { width: 700, height: 600, themeColors: true });
 
 // Restore window size
-figma.clientStorage.getAsync('windowSize').then(size => {
+figma.clientStorage.getAsync('windowSize').then((size: any) => {
   if (size) figma.ui.resize(size.w, size.h);
 }).catch(() => {});
 
@@ -85,7 +87,7 @@ figma.clientStorage.getAsync('windowSize').then(size => {
 // MESSAGE HANDLERS
 // ============================================
 
-figma.ui.onmessage = async (msg) => {
+figma.ui.onmessage = async (msg: any) => {
   try {
     if (msg.type === 'resize') {
       const w = Math.max(500, Math.min(1400, msg.size.w));
@@ -119,7 +121,7 @@ async function handleScanCollections() {
     if (collection.remote) continue;
     
     const { domain, layer } = parseCollectionName(collection.name);
-    const modes = collection.modes.map(m => ({
+    const modes = collection.modes.map((m: any) => ({
       modeId: m.modeId,
       name: m.name,
       breakpointPx: detectBreakpoint(m.name)
@@ -259,7 +261,7 @@ async function handleGenerateCSS(options: ExportOptions) {
     output: {
       css,
       stats: {
-        collections: collections.filter(c => !c.remote).length,
+        collections: collections.filter((c: any) => !c.remote).length,
         variables: allVariables.length,
         errors
       }
@@ -296,7 +298,7 @@ function generateCSSName(varName: string, domain: string, collectionName: string
 
 async function processValue(
   rawValue: any,
-  type: VariableResolvedDataType,
+  type: string,
   options: ExportOptions
 ): Promise<ProcessedValue> {
   // Check if it's an alias
@@ -385,7 +387,7 @@ function rgbToOklch(color: { r: number; g: number; b: number; a?: number }): str
 
 function groupByCollection(
   variables: VariableInfo[],
-  collections: VariableCollection[]
+  collections: any[]
 ): Map<string, VariableInfo[]> {
   const groups = new Map<string, VariableInfo[]>();
   
@@ -400,7 +402,7 @@ function groupByCollection(
 
 function generateCSSOutput(
   collectionGroups: Map<string, VariableInfo[]>,
-  collections: VariableCollection[],
+  collections: any[],
   options: ExportOptions
 ): string {
   const lines: string[] = [];
@@ -417,8 +419,8 @@ function generateCSSOutput(
   
   // Sort collections: Foundations first, then Aliases, then Mappings
   const sortedCollections = [...collections]
-    .filter(c => !c.remote && collectionGroups.has(c.id))
-    .sort((a, b) => {
+    .filter((c: any) => !c.remote && collectionGroups.has(c.id))
+    .sort((a: any, b: any) => {
       const layerOrder = (name: string): number => {
         const lower = name.toLowerCase();
         if (lower.includes('foundation')) return 0;
@@ -438,7 +440,7 @@ function generateCSSOutput(
     if (!variables || variables.length === 0) continue;
     
     const { domain } = parseCollectionName(collection.name);
-    const modeType = detectModeType(collection.modes.map(m => ({
+    const modeType = detectModeType(collection.modes.map((m: any) => ({
       modeId: m.modeId,
       name: m.name,
       breakpointPx: detectBreakpoint(m.name)
@@ -465,7 +467,7 @@ function generateCSSOutput(
 }
 
 function generateBreakpointCSS(
-  collection: VariableCollection,
+  collection: any,
   variables: VariableInfo[],
   options: ExportOptions
 ): string[] {
@@ -473,11 +475,11 @@ function generateBreakpointCSS(
   
   // Get modes sorted by breakpoint (largest first)
   const sortedModes = [...collection.modes]
-    .map(m => ({
+    .map((m: any) => ({
       ...m,
       breakpointPx: detectBreakpoint(m.name) || 0
     }))
-    .sort((a, b) => b.breakpointPx - a.breakpointPx);
+    .sort((a: any, b: any) => b.breakpointPx - a.breakpointPx);
   
   if (options.outputMode === 'fluid' && sortedModes.length >= 2) {
     // Generate piecewise clamp CSS
@@ -666,15 +668,15 @@ function generateSteppedCSS(
 }
 
 function generateThemeCSS(
-  collection: VariableCollection,
+  collection: any,
   variables: VariableInfo[],
   options: ExportOptions
 ): string[] {
   const lines: string[] = [];
   
   // Find light and dark modes
-  const lightMode = collection.modes.find(m => m.name.toLowerCase().includes('light'));
-  const darkMode = collection.modes.find(m => m.name.toLowerCase().includes('dark'));
+  const lightMode = collection.modes.find((m: any) => m.name.toLowerCase().includes('light'));
+  const darkMode = collection.modes.find((m: any) => m.name.toLowerCase().includes('dark'));
   
   // Light mode (or first mode) as default
   const defaultMode = lightMode || collection.modes[0];
@@ -751,7 +753,7 @@ function generateThemeCSS(
 }
 
 function generateSingleModeCSS(
-  collection: VariableCollection,
+  collection: any,
   variables: VariableInfo[],
   options: ExportOptions
 ): string[] {
