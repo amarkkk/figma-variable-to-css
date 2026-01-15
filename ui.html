@@ -3,76 +3,121 @@
 <head>
   <meta charset="UTF-8">
   <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    /* ============================================
+       THEME SYSTEM - Matching Variable Remapper
+       ============================================ */
     :root {
-      --bg: #1a1a1a;
-      --bg-elevated: #242424;
-      --bg-highlight: #2d2d2d;
-      --text: #e0e0e0;
-      --text-muted: #888;
-      --accent: #ad9c62;
-      --accent-dim: rgba(173, 156, 98, 0.15);
-      --border: #3a3a3a;
-      --success: #4ade80;
-      --warning: #fbbf24;
-      --error: #f87171;
+      --bg-primary: #ffffff;
+      --bg-secondary: #f5f5f5;
+      --bg-tertiary: #e5e5e5;
+      --bg-hover: #f0f0f0;
+      --bg-active: #e5e5e5;
+      --text-primary: #000000;
+      --text-secondary: #333333;
+      --text-tertiary: #666666;
+      --text-disabled: #999999;
+      --border-strong: #d4d4d4;
+      --border-medium: #e5e5e5;
+      --border-subtle: #f0f0f0;
+      --accent-primary: #18a0fb;
+      --accent-hover: #0d8ce8;
+      --accent-active: #0b7cd6;
+      --success-bg: #d4edda;
+      --success-text: #155724;
+      --success-border: #c3e6cb;
+      --warning-bg: #fff3cd;
+      --warning-text: #856404;
+      --warning-border: #ffc107;
+      --error-bg: #f8d7da;
+      --error-text: #dc3545;
+      --error-border: #f5c6cb;
     }
     
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    [data-theme="dark"] {
+      --bg-primary: #1e1e1e;
+      --bg-secondary: #2c2c2c;
+      --bg-tertiary: #3c3c3c;
+      --bg-hover: #383838;
+      --bg-active: #444444;
+      --text-primary: #ffffff;
+      --text-secondary: #e5e5e5;
+      --text-tertiary: #b3b3b3;
+      --text-disabled: #7a7a7a;
+      --border-strong: #5a5a5a;
+      --border-medium: #3c3c3c;
+      --border-subtle: #2c2c2c;
+      --accent-primary: #18a0fb;
+      --accent-hover: #3db0ff;
+      --accent-active: #0d8ce8;
+      --success-bg: #1a3d28;
+      --success-text: #4ade80;
+      --success-border: #2d5a3d;
+      --warning-bg: #3d3520;
+      --warning-text: #fbbf24;
+      --warning-border: #5a4d2d;
+      --error-bg: #3d1a1a;
+      --error-text: #f87171;
+      --error-border: #5a2d2d;
+    }
     
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       font-size: 12px;
-      background: var(--bg);
-      color: var(--text);
+      background: var(--bg-primary);
+      color: var(--text-secondary);
       height: 100vh;
       display: flex;
       flex-direction: column;
       overflow: hidden;
     }
     
-    /* Header */
+    /* ============================================
+       HEADER
+       ============================================ */
     .header {
       padding: 16px 20px;
-      border-bottom: 1px solid var(--border);
-      background: var(--bg-elevated);
+      border-bottom: 1px solid var(--border-medium);
+      background: var(--bg-secondary);
     }
     
     .header h1 {
       font-size: 16px;
       font-weight: 600;
-      color: var(--accent);
+      color: var(--accent-primary);
       margin-bottom: 4px;
     }
     
     .header .subtitle {
       font-size: 11px;
-      color: var(--text-muted);
+      color: var(--text-tertiary);
     }
     
-    /* Main content */
+    /* ============================================
+       MAIN LAYOUT
+       ============================================ */
     .main {
       flex: 1;
       display: flex;
       overflow: hidden;
     }
     
-    /* Sidebar */
+    /* ============================================
+       SIDEBAR
+       ============================================ */
     .sidebar {
-      width: 280px;
-      min-width: 280px;
-      border-right: 1px solid var(--border);
+      width: 260px;
+      min-width: 260px;
+      border-right: 1px solid var(--border-medium);
       display: flex;
       flex-direction: column;
       overflow: hidden;
+      background: var(--bg-primary);
     }
     
     .sidebar-section {
       padding: 16px;
-      border-bottom: 1px solid var(--border);
-    }
-    
-    .sidebar-section:last-child {
-      border-bottom: none;
     }
     
     .sidebar-section h2 {
@@ -80,11 +125,17 @@
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: var(--text-muted);
+      color: var(--text-tertiary);
       margin-bottom: 12px;
     }
     
-    /* Stats */
+    .sidebar-divider {
+      height: 1px;
+      background: var(--border-medium);
+      margin: 0;
+    }
+    
+    /* Stats Grid */
     .stats-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -92,8 +143,8 @@
     }
     
     .stat-card {
-      background: var(--bg);
-      border: 1px solid var(--border);
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-medium);
       border-radius: 6px;
       padding: 10px;
       text-align: center;
@@ -102,84 +153,167 @@
     .stat-value {
       font-size: 20px;
       font-weight: 600;
-      color: var(--accent);
+      color: var(--accent-primary);
     }
     
     .stat-label {
       font-size: 10px;
-      color: var(--text-muted);
+      color: var(--text-tertiary);
       margin-top: 2px;
     }
     
-    /* Options */
-    .option-group {
-      margin-bottom: 16px;
+    /* Collection List */
+    .collection-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0 16px 16px;
     }
     
-    .option-group:last-child {
-      margin-bottom: 0;
-    }
-    
-    .option-label {
-      font-size: 11px;
-      font-weight: 500;
-      margin-bottom: 8px;
-      display: block;
-    }
-    
-    .radio-group {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    
-    .radio-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
-    }
-    
-    .radio-item input[type="radio"] {
-      accent-color: var(--accent);
-    }
-    
-    .radio-item span {
-      font-size: 11px;
-    }
-    
-    .checkbox-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      cursor: pointer;
+    .collection-item {
+      padding: 10px 12px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-medium);
+      border-radius: 4px;
       margin-bottom: 6px;
     }
     
-    .checkbox-item:last-child {
+    .collection-name {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 2px;
+    }
+    
+    .collection-meta {
+      font-size: 10px;
+      color: var(--text-tertiary);
+    }
+    
+    /* Output Info */
+    .output-info {
+      padding: 16px;
+      background: var(--bg-secondary);
+    }
+    
+    .output-info h2 {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-tertiary);
+      margin-bottom: 12px;
+    }
+    
+    .info-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 10px;
+      font-size: 11px;
+      line-height: 1.4;
+      color: var(--text-secondary);
+    }
+    
+    .info-item:last-child {
       margin-bottom: 0;
     }
     
-    .checkbox-item input[type="checkbox"] {
-      accent-color: var(--accent);
+    .info-icon {
+      flex-shrink: 0;
+      width: 16px;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
     }
     
-    .checkbox-item span {
+    .info-text strong {
+      color: var(--text-primary);
+    }
+    
+    /* File Name Options */
+    .filename-section {
+      padding: 16px;
+      border-top: 1px solid var(--border-medium);
+    }
+    
+    .filename-section h2 {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-tertiary);
+      margin-bottom: 12px;
+    }
+    
+    .filename-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      cursor: pointer;
+    }
+    
+    .filename-option:last-child {
+      margin-bottom: 0;
+    }
+    
+    .filename-option input[type="radio"] {
+      accent-color: var(--accent-primary);
+    }
+    
+    .filename-option span {
       font-size: 11px;
+      color: var(--text-secondary);
     }
     
-    /* Preview panel */
+    .filename-input-wrapper {
+      margin-top: 8px;
+      display: none;
+    }
+    
+    .filename-input-wrapper.visible {
+      display: block;
+    }
+    
+    .filename-input {
+      width: 100%;
+      padding: 6px 10px;
+      border: 1px solid var(--border-strong);
+      border-radius: 4px;
+      font-size: 11px;
+      background: var(--bg-primary);
+      color: var(--text-secondary);
+    }
+    
+    .filename-input:focus {
+      outline: none;
+      border-color: var(--accent-primary);
+    }
+    
+    .filename-preview {
+      margin-top: 6px;
+      font-size: 10px;
+      color: var(--text-tertiary);
+      font-family: 'SF Mono', 'Monaco', monospace;
+    }
+    
+    /* ============================================
+       PREVIEW PANEL
+       ============================================ */
     .preview-panel {
       flex: 1;
       display: flex;
       flex-direction: column;
       overflow: hidden;
+      background: var(--bg-primary);
     }
     
     .preview-header {
       padding: 12px 16px;
-      background: var(--bg-elevated);
-      border-bottom: 1px solid var(--border);
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-medium);
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -190,114 +324,209 @@
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: var(--text-muted);
+      color: var(--text-tertiary);
     }
     
     .preview-stats {
       font-size: 10px;
-      color: var(--text-muted);
+      color: var(--text-tertiary);
     }
     
     .preview-content {
       flex: 1;
       overflow: auto;
+      position: relative;
+    }
+    
+    .preview-code-wrapper {
       padding: 16px;
-      background: var(--bg);
+      min-height: 100%;
     }
     
     .preview-code {
-      font-family: 'JetBrains Mono', 'SF Mono', monospace;
+      font-family: 'JetBrains Mono', 'SF Mono', 'Monaco', monospace;
       font-size: 11px;
       line-height: 1.6;
       white-space: pre-wrap;
       word-break: break-all;
-      color: var(--text);
+      color: var(--text-secondary);
     }
     
     .preview-placeholder {
-      color: var(--text-muted);
+      color: var(--text-tertiary);
       text-align: center;
       padding: 40px;
     }
     
-    /* Errors */
+    /* Syntax highlighting */
+    .syntax-comment { color: #6a9955; }
+    .syntax-property { color: #9cdcfe; }
+    .syntax-keyword { color: #c586c0; }
+    .syntax-number { color: #b5cea8; }
+    .syntax-function { color: #dcdcaa; }
+    .syntax-color { color: #ce9178; }
+    
+    [data-theme="dark"] .syntax-comment { color: #6a9955; }
+    [data-theme="dark"] .syntax-property { color: #9cdcfe; }
+    [data-theme="dark"] .syntax-keyword { color: #c586c0; }
+    [data-theme="dark"] .syntax-number { color: #b5cea8; }
+    [data-theme="dark"] .syntax-function { color: #dcdcaa; }
+    [data-theme="dark"] .syntax-color { color: #ce9178; }
+    
+    /* Errors Panel */
     .errors-panel {
       padding: 12px 16px;
-      background: rgba(248, 113, 113, 0.1);
-      border-top: 1px solid var(--border);
+      background: var(--warning-bg);
+      border-top: 1px solid var(--warning-border);
     }
     
     .errors-panel h3 {
       font-size: 11px;
       font-weight: 600;
-      color: var(--error);
+      color: var(--warning-text);
       margin-bottom: 8px;
     }
     
     .error-item {
       font-size: 11px;
-      color: var(--error);
+      color: var(--warning-text);
       padding: 4px 0;
     }
     
-    /* Footer */
+    /* ============================================
+       FOOTER
+       ============================================ */
     .footer {
       padding: 12px 16px;
-      border-top: 1px solid var(--border);
-      background: var(--bg-elevated);
+      border-top: 1px solid var(--border-medium);
+      background: var(--bg-secondary);
       display: flex;
-      gap: 8px;
-      justify-content: flex-end;
+      justify-content: space-between;
+      align-items: center;
     }
     
+    .footer-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .footer-stats {
+      font-size: 11px;
+      color: var(--text-tertiary);
+    }
+    
+    .footer-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    /* Buttons */
     .btn {
       padding: 8px 16px;
       border-radius: 4px;
       font-size: 12px;
       font-weight: 500;
       cursor: pointer;
-      border: none;
-      transition: all 0.15s;
+      border: 1px solid transparent;
+      transition: all 0.15s ease;
     }
     
-    .btn-primary {
-      background: var(--accent);
-      color: #1a1a1a;
-    }
-    
-    .btn-primary:hover {
-      filter: brightness(1.1);
-    }
-    
-    .btn-primary:disabled {
+    .btn:disabled {
       opacity: 0.5;
       cursor: not-allowed;
     }
     
+    .btn-primary {
+      background: var(--accent-primary);
+      color: white;
+      border-color: var(--accent-primary);
+    }
+    
+    .btn-primary:hover:not(:disabled) {
+      background: var(--accent-hover);
+    }
+    
     .btn-secondary {
-      background: var(--bg);
-      color: var(--text);
-      border: 1px solid var(--border);
+      background: var(--bg-primary);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-strong);
     }
     
-    .btn-secondary:hover {
-      background: var(--bg-highlight);
+    .btn-secondary:hover:not(:disabled) {
+      background: var(--bg-hover);
     }
     
-    /* Loading state */
+    /* Icon Button */
+    .icon-button {
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      color: var(--text-tertiary);
+      position: relative;
+    }
+    
+    .icon-button:hover {
+      background: var(--bg-hover);
+      color: var(--text-secondary);
+    }
+    
+    .icon-button .btn-tooltip {
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1a1a1a;
+      color: #ffffff;
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-family: 'Inter', -apple-system, sans-serif;
+      white-space: nowrap;
+      z-index: 10000;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.15s ease, visibility 0.15s ease;
+      pointer-events: none;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    
+    .icon-button .btn-tooltip::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 5px solid transparent;
+      border-top-color: #1a1a1a;
+    }
+    
+    .icon-button:hover .btn-tooltip {
+      opacity: 1;
+      visibility: visible;
+    }
+    
+    /* Loading State */
     .loading {
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 40px;
-      color: var(--text-muted);
+      color: var(--text-tertiary);
     }
     
     .spinner {
       width: 20px;
       height: 20px;
-      border: 2px solid var(--border);
-      border-top-color: var(--accent);
+      border: 2px solid var(--border-medium);
+      border-top-color: var(--accent-primary);
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
       margin-right: 8px;
@@ -307,95 +536,71 @@
       to { transform: rotate(360deg); }
     }
     
-    /* Collection list */
-    .collection-list {
-      flex: 1;
-      overflow-y: auto;
-      padding: 0 16px 16px;
-    }
-    
-    .collection-item {
-      padding: 8px 10px;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      margin-bottom: 6px;
-    }
-    
-    .collection-name {
-      font-size: 11px;
-      font-weight: 500;
-      margin-bottom: 2px;
-    }
-    
-    .collection-meta {
-      font-size: 10px;
-      color: var(--text-muted);
-    }
-    
-    .collection-badge {
-      display: inline-block;
-      padding: 2px 6px;
-      border-radius: 3px;
-      font-size: 9px;
-      font-weight: 500;
-      text-transform: uppercase;
-      margin-left: 4px;
-    }
-    
-    .badge-breakpoint {
-      background: rgba(96, 165, 250, 0.2);
-      color: #60a5fa;
-    }
-    
-    .badge-theme {
-      background: rgba(167, 139, 250, 0.2);
-      color: #a78bfa;
-    }
-    
-    .badge-single {
-      background: var(--accent-dim);
-      color: var(--accent);
-    }
-    
-    /* Resize handle */
+    /* Resize Handle */
     #resize-corner {
       position: absolute;
       right: 4px;
       bottom: 4px;
       cursor: nwse-resize;
       z-index: 10000;
-      opacity: 0.6;
+      opacity: 0.4;
+      color: var(--text-tertiary);
     }
     
     #resize-corner:hover {
-      opacity: 1;
+      opacity: 0.8;
     }
     
-    /* Scrollbar styling */
+    /* Scrollbar */
     ::-webkit-scrollbar {
-      width: 8px;
-      height: 8px;
+      width: 10px;
+      height: 10px;
     }
     
     ::-webkit-scrollbar-track {
-      background: var(--bg);
+      background: var(--bg-secondary);
     }
     
     ::-webkit-scrollbar-thumb {
-      background: var(--border);
-      border-radius: 4px;
+      background: var(--border-strong);
+      border-radius: 5px;
+      border: 2px solid var(--bg-secondary);
     }
     
     ::-webkit-scrollbar-thumb:hover {
-      background: #4a4a4a;
+      background: var(--text-tertiary);
+    }
+    
+    /* Copy Success Toast */
+    .toast {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--success-bg);
+      color: var(--success-text);
+      border: 1px solid var(--success-border);
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+      z-index: 10001;
+    }
+    
+    .toast.visible {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(-50%) translateY(0);
     }
   </style>
 </head>
 <body>
   <div class="header">
     <h1>Variable to CSS</h1>
-    <div class="subtitle">Export design tokens to CSS custom properties</div>
+    <div class="subtitle">Export Figma variables to CSS custom properties with fluid scaling</div>
   </div>
   
   <div class="main">
@@ -421,66 +626,38 @@
         </div>
       </div>
       
-      <div class="sidebar-section">
-        <h2>Output Options</h2>
-        
-        <div class="option-group">
-          <label class="option-label">Scaling Mode</label>
-          <div class="radio-group">
-            <label class="radio-item">
-              <input type="radio" name="outputMode" value="fluid" checked>
-              <span>Fluid (clamp)</span>
-            </label>
-            <label class="radio-item">
-              <input type="radio" name="outputMode" value="stepped">
-              <span>Stepped (media queries only)</span>
-            </label>
-          </div>
+      <div class="sidebar-divider"></div>
+      
+      <div class="output-info">
+        <h2>Output Format</h2>
+        <div class="info-item">
+          <span class="info-icon">📐</span>
+          <span class="info-text"><strong>Fluid scaling</strong> with clamp() for responsive variables, plus media query fallbacks for older browsers</span>
         </div>
-        
-        <div class="option-group">
-          <label class="option-label">Alias Handling</label>
-          <div class="radio-group">
-            <label class="radio-item">
-              <input type="radio" name="aliasMode" value="preserved" checked>
-              <span>Preserve var() references</span>
-            </label>
-            <label class="radio-item">
-              <input type="radio" name="aliasMode" value="resolved">
-              <span>Resolve to final values</span>
-            </label>
-          </div>
+        <div class="info-item">
+          <span class="info-icon">🔗</span>
+          <span class="info-text"><strong>Preserved aliases</strong> using var() references to maintain the token chain</span>
         </div>
-        
-        <div class="option-group">
-          <label class="option-label">Dark Mode Output</label>
-          <div class="radio-group">
-            <label class="radio-item">
-              <input type="radio" name="darkMode" value="prefers-color-scheme" checked>
-              <span>prefers-color-scheme</span>
-            </label>
-            <label class="radio-item">
-              <input type="radio" name="darkMode" value="class">
-              <span>.dark class</span>
-            </label>
-            <label class="radio-item">
-              <input type="radio" name="darkMode" value="both">
-              <span>Both</span>
-            </label>
-          </div>
+        <div class="info-item">
+          <span class="info-icon">🌙</span>
+          <span class="info-text"><strong>Theme modes</strong> exported with prefers-color-scheme media queries</span>
         </div>
-        
-        <div class="option-group">
-          <label class="option-label">Additional Options</label>
-          <label class="checkbox-item">
-            <input type="checkbox" id="includeTimestamp" checked>
-            <span>Include timestamp</span>
-          </label>
-          <label class="checkbox-item">
-            <input type="checkbox" id="includeIds">
-            <span>Include variable IDs as comments</span>
-          </label>
+      </div>
+      
+      <div class="filename-section">
+        <h2>Download Filename</h2>
+        <label class="filename-option">
+          <input type="radio" name="filenameMode" value="auto" checked>
+          <span>Auto with date suffix</span>
+        </label>
+        <label class="filename-option">
+          <input type="radio" name="filenameMode" value="custom">
+          <span>Custom filename</span>
+        </label>
+        <div class="filename-input-wrapper" id="custom-filename-wrapper">
+          <input type="text" class="filename-input" id="custom-filename" value="design-tokens" placeholder="Enter filename">
         </div>
+        <div class="filename-preview" id="filename-preview">design-tokens-2026-01-15.css</div>
       </div>
     </div>
     
@@ -495,27 +672,32 @@
         </div>
       </div>
       <div class="errors-panel" id="errors-panel" style="display: none;">
-        <h3>Warnings</h3>
+        <h3>⚠️ Warnings</h3>
         <div id="error-list"></div>
       </div>
     </div>
   </div>
   
   <div class="footer">
-    <button class="btn btn-secondary" id="btn-cancel">Cancel</button>
-    <button class="btn btn-primary" id="btn-generate">Generate CSS</button>
-    <button class="btn btn-primary" id="btn-copy" disabled>Copy to Clipboard</button>
-    <button class="btn btn-secondary" id="btn-download" disabled>Download</button>
+    <div class="footer-left">
+      <button class="icon-button" id="theme-toggle">
+        <span class="btn-tooltip">Toggle theme</span>
+        <svg id="sun-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 256 256"><path d="M120,40V16a8,8,0,0,1,16,0V40a8,8,0,0,1-16,0Zm72,88a64,64,0,1,1-64-64A64.07,64.07,0,0,1,192,128Zm-16,0a48,48,0,1,0-48,48A48.05,48.05,0,0,0,176,128ZM58.34,69.66A8,8,0,0,0,69.66,58.34l-16-16A8,8,0,0,0,42.34,53.66Zm0,116.68-16,16a8,8,0,0,0,11.32,11.32l16-16a8,8,0,0,0-11.32-11.32ZM192,72a8,8,0,0,0,5.66-2.34l16-16a8,8,0,0,0-11.32-11.32l-16,16A8,8,0,0,0,192,72Zm5.66,114.34a8,8,0,0,0-11.32,11.32l16,16a8,8,0,0,0,11.32-11.32ZM48,128a8,8,0,0,0-8-8H16a8,8,0,0,0,0,16H40A8,8,0,0,0,48,128Zm80,80a8,8,0,0,0-8,8v24a8,8,0,0,0,16,0V216A8,8,0,0,0,128,208Zm112-88H216a8,8,0,0,0,0,16h24a8,8,0,0,0,0-16Z"></path></svg>
+        <svg id="moon-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 256 256" style="display:none;"><path d="M233.54,142.23a8,8,0,0,0-8-2,88.08,88.08,0,0,1-109.8-109.8,8,8,0,0,0-10-10,104.84,104.84,0,0,0-52.91,37A104,104,0,0,0,136,224a103.09,103.09,0,0,0,62.52-20.88,104.84,104.84,0,0,0,37-52.91A8,8,0,0,0,233.54,142.23ZM188.9,190.34A88,88,0,0,1,65.66,67.11a89,89,0,0,1,31.4-26A106,106,0,0,0,96,56,104.11,104.11,0,0,0,200,160a106,106,0,0,0,14.92-1.06A89,89,0,0,1,188.9,190.34Z"></path></svg>
+      </button>
+      <span class="footer-stats" id="footer-stats"></span>
+    </div>
+    <div class="footer-right">
+      <button class="btn btn-primary" id="btn-generate">Generate CSS</button>
+      <button class="btn btn-secondary" id="btn-copy" disabled>Copy to Clipboard</button>
+      <button class="btn btn-secondary" id="btn-download" disabled>Download</button>
+    </div>
   </div>
   
+  <div class="toast" id="toast">Copied to clipboard!</div>
+  
   <!-- Resize Handle -->
-  <svg
-    id="resize-corner"
-    xmlns="http://www.w3.org/2000/svg"
-    width="16"
-    height="16"
-    fill="#666666"
-    viewBox="0 0 256 256">
+  <svg id="resize-corner" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256">
     <path d="M213.66,133.66l-80,80a8,8,0,0,1-11.32-11.32l80-80a8,8,0,0,1,11.32,11.32Zm-16-99.32a8,8,0,0,0-11.32,0l-152,152a8,8,0,0,0,11.32,11.32l152-152A8,8,0,0,0,197.66,34.34Z"></path>
   </svg>
   
@@ -525,6 +707,7 @@
     // ============================================
     let collections = [];
     let generatedCSS = '';
+    let currentTheme = 'light';
     
     // ============================================
     // UI ELEMENTS
@@ -536,11 +719,16 @@
     const previewStatsEl = document.getElementById('preview-stats');
     const errorsPanelEl = document.getElementById('errors-panel');
     const errorListEl = document.getElementById('error-list');
+    const footerStatsEl = document.getElementById('footer-stats');
+    const filenamePreviewEl = document.getElementById('filename-preview');
+    const customFilenameWrapperEl = document.getElementById('custom-filename-wrapper');
+    const customFilenameEl = document.getElementById('custom-filename');
+    const toastEl = document.getElementById('toast');
     
     const btnGenerate = document.getElementById('btn-generate');
     const btnCopy = document.getElementById('btn-copy');
     const btnDownload = document.getElementById('btn-download');
-    const btnCancel = document.getElementById('btn-cancel');
+    const themeToggle = document.getElementById('theme-toggle');
     
     // ============================================
     // EVENT HANDLERS
@@ -548,24 +736,64 @@
     btnGenerate.addEventListener('click', generateCSS);
     btnCopy.addEventListener('click', copyToClipboard);
     btnDownload.addEventListener('click', downloadCSS);
-    btnCancel.addEventListener('click', () => {
-      parent.postMessage({ pluginMessage: { type: 'cancel' } }, '*');
+    themeToggle.addEventListener('click', toggleTheme);
+    
+    // Filename mode handlers
+    document.querySelectorAll('input[name="filenameMode"]').forEach(radio => {
+      radio.addEventListener('change', updateFilenamePreview);
     });
+    customFilenameEl.addEventListener('input', updateFilenamePreview);
     
     // ============================================
-    // FUNCTIONS
+    // THEME TOGGLE
+    // ============================================
+    function toggleTheme() {
+      currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', currentTheme);
+      document.getElementById('sun-icon').style.display = currentTheme === 'dark' ? 'none' : 'block';
+      document.getElementById('moon-icon').style.display = currentTheme === 'dark' ? 'block' : 'none';
+    }
+    
+    // ============================================
+    // FILENAME HANDLING
+    // ============================================
+    function getFilename() {
+      const mode = document.querySelector('input[name="filenameMode"]:checked').value;
+      const timestamp = new Date().toISOString().split('T')[0];
+      
+      if (mode === 'auto') {
+        return `design-tokens-${timestamp}.css`;
+      } else {
+        const customName = customFilenameEl.value.trim() || 'design-tokens';
+        // Remove .css if user added it
+        const baseName = customName.replace(/\.css$/i, '');
+        return `${baseName}.css`;
+      }
+    }
+    
+    function updateFilenamePreview() {
+      const mode = document.querySelector('input[name="filenameMode"]:checked').value;
+      customFilenameWrapperEl.classList.toggle('visible', mode === 'custom');
+      filenamePreviewEl.textContent = getFilename();
+    }
+    
+    // ============================================
+    // OPTIONS - Fixed settings
     // ============================================
     function getOptions() {
       return {
-        outputMode: document.querySelector('input[name="outputMode"]:checked').value,
-        aliasMode: document.querySelector('input[name="aliasMode"]:checked').value,
-        darkModeOutput: document.querySelector('input[name="darkMode"]:checked').value,
-        includeTimestamp: document.getElementById('includeTimestamp').checked,
-        includeIds: document.getElementById('includeIds').checked,
+        outputMode: 'fluid',
+        aliasMode: 'preserved',
+        darkModeOutput: 'prefers-color-scheme',
+        includeTimestamp: true,
+        includeIds: false,
         colorFormat: 'hex'
       };
     }
     
+    // ============================================
+    // GENERATE CSS
+    // ============================================
     function generateCSS() {
       btnGenerate.disabled = true;
       btnGenerate.textContent = 'Generating...';
@@ -579,26 +807,64 @@
       }, '*');
     }
     
+    // ============================================
+    // COPY TO CLIPBOARD
+    // ============================================
     function copyToClipboard() {
       if (!generatedCSS) return;
       
-      navigator.clipboard.writeText(generatedCSS).then(() => {
-        const originalText = btnCopy.textContent;
-        btnCopy.textContent = 'Copied!';
-        setTimeout(() => {
-          btnCopy.textContent = originalText;
-        }, 1500);
-      }).catch(err => {
-        console.error('Failed to copy:', err);
-      });
+      // Use fallback method for Figma plugin iframe
+      const textarea = document.createElement('textarea');
+      textarea.value = generatedCSS;
+      textarea.style.position = 'fixed';
+      textarea.style.left = '-9999px';
+      textarea.style.top = '-9999px';
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      
+      try {
+        const success = document.execCommand('copy');
+        if (success) {
+          showToast('Copied to clipboard!');
+        } else {
+          // Fallback to navigator.clipboard API
+          navigator.clipboard.writeText(generatedCSS).then(() => {
+            showToast('Copied to clipboard!');
+          }).catch(err => {
+            console.error('Failed to copy:', err);
+            showToast('Copy failed - please select and copy manually');
+          });
+        }
+      } catch (err) {
+        console.error('execCommand error:', err);
+        // Try navigator.clipboard as fallback
+        navigator.clipboard.writeText(generatedCSS).then(() => {
+          showToast('Copied to clipboard!');
+        }).catch(err2 => {
+          console.error('Clipboard API error:', err2);
+          showToast('Copy failed - please select and copy manually');
+        });
+      }
+      
+      document.body.removeChild(textarea);
     }
     
+    function showToast(message) {
+      toastEl.textContent = message;
+      toastEl.classList.add('visible');
+      setTimeout(() => {
+        toastEl.classList.remove('visible');
+      }, 2000);
+    }
+    
+    // ============================================
+    // DOWNLOAD
+    // ============================================
     function downloadCSS() {
       if (!generatedCSS) return;
       
-      const timestamp = new Date().toISOString().split('T')[0];
-      const filename = `design-tokens-${timestamp}.css`;
-      
+      const filename = getFilename();
       const blob = new Blob([generatedCSS], { type: 'text/css' });
       const url = URL.createObjectURL(blob);
       
@@ -611,6 +877,9 @@
       URL.revokeObjectURL(url);
     }
     
+    // ============================================
+    // RENDER COLLECTIONS
+    // ============================================
     function renderCollections() {
       if (collections.length === 0) {
         collectionListEl.innerHTML = '<div class="preview-placeholder">No collections found</div>';
@@ -619,40 +888,37 @@
       
       let html = '';
       for (const col of collections) {
-        const badgeClass = col.modeType === 'breakpoint' ? 'badge-breakpoint' :
-                          col.modeType === 'theme' ? 'badge-theme' : 'badge-single';
-        const badgeText = col.modeType === 'breakpoint' ? 'Responsive' :
-                         col.modeType === 'theme' ? 'Theme' : 'Single';
+        const modeCount = col.modes.length;
+        const modeText = modeCount === 1 ? '1 mode' : `${modeCount} modes`;
         
         html += `
           <div class="collection-item">
-            <div class="collection-name">
-              ${col.name}
-              <span class="collection-badge ${badgeClass}">${badgeText}</span>
-            </div>
-            <div class="collection-meta">
-              ${col.variableCount} variables · ${col.modes.length} mode${col.modes.length > 1 ? 's' : ''}
-            </div>
+            <div class="collection-name">${escapeHtml(col.name)}</div>
+            <div class="collection-meta">${col.variableCount} variables · ${modeText}</div>
           </div>
         `;
       }
       collectionListEl.innerHTML = html;
     }
     
+    // ============================================
+    // RENDER PREVIEW
+    // ============================================
     function renderPreview(css, stats) {
       generatedCSS = css;
       
-      // Syntax highlight (simple)
+      // Syntax highlight - using spans with classes (not inline styles that leak into clipboard)
       const highlighted = css
-        .replace(/(\/\*[\s\S]*?\*\/)/g, '<span style="color: #6a9955;">$1</span>')
-        .replace(/(--[a-z0-9-]+)/g, '<span style="color: #9cdcfe;">$1</span>')
-        .replace(/(:root|@media|@supports)/g, '<span style="color: #c586c0;">$1</span>')
-        .replace(/(\d+(?:\.\d+)?(?:px|rem|vw|%)?)/g, '<span style="color: #b5cea8;">$1</span>')
-        .replace(/(clamp|calc|var)/g, '<span style="color: #dcdcaa;">$1</span>')
-        .replace(/(#[a-f0-9]{3,8})/gi, '<span style="color: #ce9178;">$1</span>');
+        .replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="syntax-comment">$1</span>')
+        .replace(/(--[a-z0-9-]+)/gi, '<span class="syntax-property">$1</span>')
+        .replace(/(:root|@media|@supports)/g, '<span class="syntax-keyword">$1</span>')
+        .replace(/(\d+(?:\.\d+)?(?:px|rem|vw|%)?)/g, '<span class="syntax-number">$1</span>')
+        .replace(/(clamp|calc|var)/g, '<span class="syntax-function">$1</span>')
+        .replace(/(#[a-f0-9]{3,8})/gi, '<span class="syntax-color">$1</span>');
       
-      previewContentEl.innerHTML = `<pre class="preview-code">${highlighted}</pre>`;
+      previewContentEl.innerHTML = `<div class="preview-code-wrapper"><pre class="preview-code">${highlighted}</pre></div>`;
       previewStatsEl.textContent = `${stats.collections} collections · ${stats.variables} variables · ${(css.length / 1024).toFixed(1)} KB`;
+      footerStatsEl.textContent = `${stats.variables} variables exported`;
       
       btnCopy.disabled = false;
       btnDownload.disabled = false;
@@ -662,7 +928,7 @@
       // Show errors if any
       if (stats.errors && stats.errors.length > 0) {
         errorsPanelEl.style.display = 'block';
-        errorListEl.innerHTML = stats.errors.map(e => `<div class="error-item">${e}</div>`).join('');
+        errorListEl.innerHTML = stats.errors.map(e => `<div class="error-item">${escapeHtml(e)}</div>`).join('');
       } else {
         errorsPanelEl.style.display = 'none';
       }
@@ -679,11 +945,12 @@
         collections = msg.collections;
         collectionCountEl.textContent = msg.collections.length;
         variableCountEl.textContent = msg.totalVariables;
+        footerStatsEl.textContent = `${msg.totalVariables} variables found`;
         renderCollections();
       } else if (msg.type === 'css-generated') {
         renderPreview(msg.output.css, msg.output.stats);
       } else if (msg.type === 'error') {
-        previewContentEl.innerHTML = `<div class="preview-placeholder" style="color: var(--error);">Error: ${msg.message}</div>`;
+        previewContentEl.innerHTML = `<div class="preview-placeholder" style="color: var(--error-text);">Error: ${escapeHtml(msg.message)}</div>`;
         btnGenerate.disabled = false;
         btnGenerate.textContent = 'Generate CSS';
       }
@@ -695,9 +962,10 @@
     const corner = document.getElementById('resize-corner');
     
     const resizeWindow = (e) => {
+      // No max constraints - only minimum
       const size = {
-        w: Math.max(500, Math.floor(e.clientX + 5)),
-        h: Math.max(400, Math.floor(e.clientY + 5))
+        w: Math.max(600, Math.floor(e.clientX + 5)),
+        h: Math.max(450, Math.floor(e.clientY + 5))
       };
       parent.postMessage({ pluginMessage: { type: 'resize', size } }, '*');
     };
@@ -713,8 +981,18 @@
     });
     
     // ============================================
+    // UTILITIES
+    // ============================================
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    
+    // ============================================
     // INITIALIZATION
     // ============================================
+    updateFilenamePreview();
     parent.postMessage({ pluginMessage: { type: 'scan-collections' } }, '*');
   </script>
 </body>
