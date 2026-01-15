@@ -1,7 +1,13 @@
 /// <reference types="@figma/plugin-typings" />
 
-// Variable to CSS v1.1
+// Variable to CSS v1.2
 // Figma Plugin for exporting variable collections to CSS custom properties
+// 
+// v1.2 Fixes:
+// - Preserve intentional double hyphens in variable names
+// - Smart domain prefix: only for Foundations/Aliases, not Mappings
+// - Prevent circular alias references (skip self-referencing aliases)
+// - Deduplicate CSS declarations across collections
 
 // ============================================
 // TYPES
@@ -12,6 +18,7 @@ interface CollectionInfo {
   name: string;
   domain: string;
   layer: string;
+  layerType: 'foundations' | 'aliases' | 'aliases-extended' | 'mappings' | 'other';
   modes: ModeInfo[];
   modeType: 'breakpoint' | 'theme' | 'single';
   variableCount: number;
@@ -29,6 +36,7 @@ interface VariableInfo {
   collectionId: string;
   collectionName: string;
   domain: string;
+  layerType: 'foundations' | 'aliases' | 'aliases-extended' | 'mappings' | 'other';
   resolvedType: string;
   valuesByMode: Record<string, ProcessedValue>;
   isAlias: boolean;
@@ -141,6 +149,7 @@ async function handleScanCollections() {
       name: collection.name,
       domain: parsed.domain,
       layer: parsed.layer,
+      layerType: parsed.layerType,
       modes: modes,
       modeType: modeType,
       variableCount: collection.variableIds.length
@@ -165,17 +174,28 @@ async function handleScanCollections() {
   });
 }
 
-function parseCollectionName(name: string): { domain: string; layer: string } {
+function parseCollectionName(name: string): { domain: string; layer: string; layerType: 'foundations' | 'aliases' | 'aliases-extended' | 'mappings' | 'other' } {
   // Pattern: "Domain - Layer. Type" or "Domain - Layer Type"
-  // Examples: "Typo - 1. Foundations", "Space - 2.1 Aliases Extended"
+  // Examples: "Typo - 1. Foundations", "Space - 2.1 Aliases Extended", "Dimension - 4. Mappings"
   var match = name.match(/^([A-Za-z]+)\s*-\s*(.+)$/);
-  if (match) {
-    return {
-      domain: match[1].toLowerCase(),
-      layer: match[2].trim()
-    };
+  var domain = match ? match[1].toLowerCase() : name.toLowerCase();
+  var layer = match ? match[2].trim() : 'default';
+  
+  // Detect layer type from collection name
+  var lowerName = name.toLowerCase();
+  var layerType: 'foundations' | 'aliases' | 'aliases-extended' | 'mappings' | 'other' = 'other';
+  
+  if (lowerName.indexOf('foundation') !== -1) {
+    layerType = 'foundations';
+  } else if (lowerName.indexOf('extended') !== -1 || lowerName.indexOf('2.1') !== -1) {
+    layerType = 'aliases-extended';
+  } else if (lowerName.indexOf('alias') !== -1) {
+    layerType = 'aliases';
+  } else if (lowerName.indexOf('mapping') !== -1) {
+    layerType = 'mappings';
   }
-  return { domain: name.toLowerCase(), layer: 'default' };
+  
+  return { domain, layer, layerType };
 }
 
 function detectBreakpoint(modeName: string): number | undefined {
@@ -222,6 +242,9 @@ async function handleGenerateCSS(options: ExportOptions) {
   var variableMap = new Map<string, VariableInfo>();
   var errors: string[] = [];
   
+  // Track CSS names to detect duplicates and circular references
+  var outputtedCSSNames = new Set<string>();
+  
   // First pass: collect all variables
   for (var ci = 0; ci < collections.length; ci++) {
     var collection = collections[ci];
@@ -229,13 +252,14 @@ async function handleGenerateCSS(options: ExportOptions) {
     
     var parsed = parseCollectionName(collection.name);
     var domain = parsed.domain;
+    var layerType = parsed.layerType;
     
     for (var vi = 0; vi < collection.variableIds.length; vi++) {
       var varId = collection.variableIds[vi];
       var variable = await figma.variables.getVariableByIdAsync(varId);
       if (!variable) continue;
       
-      var cssName = generateCSSName(variable.name, domain, collection.name);
+      var cssName = generateCSSName(variable.name, domain, layerType);
       var valuesByMode: Record<string, ProcessedValue> = {};
       
       for (var mi = 0; mi < collection.modes.length; mi++) {
@@ -259,6 +283,7 @@ async function handleGenerateCSS(options: ExportOptions) {
         collectionId: collection.id,
         collectionName: collection.name,
         domain: domain,
+        layerType: layerType,
         resolvedType: variable.resolvedType,
         valuesByMode: valuesByMode,
         isAlias: isAlias,
@@ -291,8 +316,8 @@ async function handleGenerateCSS(options: ExportOptions) {
   // Group by collection for ordered output
   var collectionGroups = groupByCollection(allVariables, collections);
   
-  // Generate CSS
-  var css = generateCSSOutput(collectionGroups, collections, options);
+  // Generate CSS with deduplication
+  var css = generateCSSOutput(collectionGroups, collections, options, outputtedCSSNames, errors);
   
   var nonRemoteCount = 0;
   for (var i = 0; i < collections.length; i++) {
@@ -312,22 +337,51 @@ async function handleGenerateCSS(options: ExportOptions) {
   });
 }
 
-function generateCSSName(varName: string, domain: string, collectionName: string): string {
+function generateCSSName(varName: string, domain: string, layerType: 'foundations' | 'aliases' | 'aliases-extended' | 'mappings' | 'other'): string {
   // Transform Figma variable name to CSS custom property name
-  var isMappings = collectionName.toLowerCase().indexOf('mapping') !== -1;
+  // IMPORTANT: Preserve intentional double hyphens (e.g., "stroke--width")
   
   var cssName = varName
     .toLowerCase()
-    .replace(/\//g, '-')
-    .replace(/--/g, '-')
-    .replace(/\./g, '-')
-    .replace(/,/g, '-')
-    .replace(/[^a-z0-9-]/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
+    .replace(/\//g, '-')           // Path separator to hyphen
+    .replace(/\./g, '-')           // Dots to hyphens
+    .replace(/,/g, '-')            // Commas to hyphens
+    .replace(/\s+/g, '-')          // Spaces to hyphens
+    .replace(/[^a-z0-9-]/g, '-')   // Other special chars to hyphens
+    .replace(/-{3,}/g, '--')       // Collapse 3+ hyphens to 2 (preserve intentional --)
+    .replace(/^-+|-+$/g, '');      // Trim leading/trailing hyphens
   
-  // Add domain prefix if needed
-  if (!isMappings && cssName.indexOf(domain) !== 0) {
+  // Domain prefix logic:
+  // - Foundations: Add domain prefix (e.g., "typo-type-family-primary")
+  // - Aliases/Aliases Extended: Add domain prefix (same structure as foundations)
+  // - Mappings: NO domain prefix (semantic names like "button-background")
+  // - Other: Check if name already has domain-like prefix
+  
+  if (layerType === 'mappings') {
+    // Mappings are semantic - no domain prefix
+    return '--' + cssName;
+  }
+  
+  if (layerType === 'foundations' || layerType === 'aliases' || layerType === 'aliases-extended') {
+    // Add domain prefix if not already present
+    if (cssName.indexOf(domain + '-') !== 0 && cssName !== domain) {
+      cssName = domain + '-' + cssName;
+    }
+    return '--' + cssName;
+  }
+  
+  // For 'other' layer type, check if it looks like it already has a domain prefix
+  // Common domains: typo, space, color, dimension, static, etc.
+  var commonDomains = ['typo', 'space', 'color', 'dimension', 'static', 'size', 'radius', 'border'];
+  var hasExistingDomain = false;
+  for (var i = 0; i < commonDomains.length; i++) {
+    if (cssName.indexOf(commonDomains[i] + '-') === 0) {
+      hasExistingDomain = true;
+      break;
+    }
+  }
+  
+  if (!hasExistingDomain && cssName.indexOf(domain + '-') !== 0) {
     cssName = domain + '-' + cssName;
   }
   
@@ -437,7 +491,9 @@ function groupByCollection(
 function generateCSSOutput(
   collectionGroups: Map<string, VariableInfo[]>,
   collections: any[],
-  options: ExportOptions
+  options: ExportOptions,
+  outputtedCSSNames: Set<string>,
+  errors: string[]
 ): string {
   var lines: string[] = [];
   var timestamp = new Date().toISOString();
@@ -501,11 +557,11 @@ function generateCSSOutput(
     
     var sectionLines: string[];
     if (modeType === 'breakpoint') {
-      sectionLines = generateBreakpointCSS(collection, variables, options);
+      sectionLines = generateBreakpointCSS(collection, variables, options, outputtedCSSNames, errors);
     } else if (modeType === 'theme') {
-      sectionLines = generateThemeCSS(collection, variables, options);
+      sectionLines = generateThemeCSS(collection, variables, options, outputtedCSSNames, errors);
     } else {
-      sectionLines = generateSingleModeCSS(collection, variables, options);
+      sectionLines = generateSingleModeCSS(collection, variables, options, outputtedCSSNames, errors);
     }
     
     for (var li = 0; li < sectionLines.length; li++) {
@@ -518,10 +574,35 @@ function generateCSSOutput(
   return lines.join('\n');
 }
 
+// Check if a variable should be skipped (circular reference or duplicate)
+function shouldSkipVariable(
+  variable: VariableInfo,
+  value: ProcessedValue,
+  outputtedCSSNames: Set<string>,
+  errors: string[]
+): boolean {
+  // Check for circular reference: alias pointing to itself
+  if (value.isAlias && value.aliasName === variable.cssName) {
+    // This would create: --var-name: var(--var-name); which is circular
+    // Skip this variable - it's likely an alias that mirrors a foundation
+    return true;
+  }
+  
+  // Check for duplicate CSS name that's already been output
+  // Only skip if it's NOT a foundation (foundations should always be output first)
+  if (outputtedCSSNames.has(variable.cssName) && variable.layerType !== 'foundations') {
+    return true;
+  }
+  
+  return false;
+}
+
 function generateBreakpointCSS(
   collection: any,
   variables: VariableInfo[],
-  options: ExportOptions
+  options: ExportOptions,
+  outputtedCSSNames: Set<string>,
+  errors: string[]
 ): string[] {
   var lines: string[] = [];
   
@@ -539,9 +620,9 @@ function generateBreakpointCSS(
   
   var resultLines: string[];
   if (options.outputMode === 'fluid' && sortedModes.length >= 2) {
-    resultLines = generateFluidCSS(sortedModes, variables, options);
+    resultLines = generateFluidCSS(sortedModes, variables, options, outputtedCSSNames, errors);
   } else {
-    resultLines = generateSteppedCSS(sortedModes, variables, options);
+    resultLines = generateSteppedCSS(sortedModes, variables, options, outputtedCSSNames, errors);
   }
   
   for (var i = 0; i < resultLines.length; i++) {
@@ -554,7 +635,9 @@ function generateBreakpointCSS(
 function generateFluidCSS(
   modes: Array<{ modeId: string; name: string; breakpointPx: number }>,
   variables: VariableInfo[],
-  options: ExportOptions
+  options: ExportOptions,
+  outputtedCSSNames: Set<string>,
+  errors: string[]
 ): string[] {
   var lines: string[] = [];
   
@@ -566,6 +649,11 @@ function generateFluidCSS(
     var variable = variables[vi];
     var value = variable.valuesByMode[desktopMode.modeId];
     if (!value) continue;
+    
+    // Check if we should skip this variable
+    if (shouldSkipVariable(variable, value, outputtedCSSNames, errors)) {
+      continue;
+    }
     
     var cssValue = formatCSSValue(value, variable, options);
     if (cssValue !== null) {
@@ -596,6 +684,9 @@ function generateFluidCSS(
         var clampValue = generateClamp(modes, variable, options);
         lines.push('  ' + variable.cssName + ': ' + clampValue + ';');
       }
+      
+      // Mark as outputted
+      outputtedCSSNames.add(variable.cssName);
     }
   }
   
@@ -617,6 +708,9 @@ function generateFluidCSS(
       var variable = variables[vi];
       var val = variable.valuesByMode[mode.modeId];
       if (!val) continue;
+      
+      // Only output if this variable was in the main :root block
+      if (!outputtedCSSNames.has(variable.cssName)) continue;
       
       var cv = formatCSSValue(val, variable, options);
       if (cv !== null) {
@@ -676,7 +770,9 @@ function generateClamp(
 function generateSteppedCSS(
   modes: Array<{ modeId: string; name: string; breakpointPx: number }>,
   variables: VariableInfo[],
-  options: ExportOptions
+  options: ExportOptions,
+  outputtedCSSNames: Set<string>,
+  errors: string[]
 ): string[] {
   var lines: string[] = [];
   
@@ -688,12 +784,18 @@ function generateSteppedCSS(
     var value = variable.valuesByMode[desktopMode.modeId];
     if (!value) continue;
     
+    // Check if we should skip this variable
+    if (shouldSkipVariable(variable, value, outputtedCSSNames, errors)) {
+      continue;
+    }
+    
     var cssValue = formatCSSValue(value, variable, options);
     if (cssValue !== null) {
       if (options.includeIds) {
         lines.push('  /* ' + variable.id + ' */');
       }
       lines.push('  ' + variable.cssName + ': ' + cssValue + ';');
+      outputtedCSSNames.add(variable.cssName);
     }
   }
   
@@ -714,6 +816,9 @@ function generateSteppedCSS(
       
       if (!value) continue;
       
+      // Only output if this variable was in the main :root block
+      if (!outputtedCSSNames.has(variable.cssName)) continue;
+      
       var cssValue = formatCSSValue(value, variable, options);
       var prevCssValue = prevValue ? formatCSSValue(prevValue, variable, options) : null;
       
@@ -732,7 +837,9 @@ function generateSteppedCSS(
 function generateThemeCSS(
   collection: any,
   variables: VariableInfo[],
-  options: ExportOptions
+  options: ExportOptions,
+  outputtedCSSNames: Set<string>,
+  errors: string[]
 ): string[] {
   var lines: string[] = [];
   
@@ -754,12 +861,18 @@ function generateThemeCSS(
     var value = variable.valuesByMode[defaultMode.modeId];
     if (!value) continue;
     
+    // Check if we should skip this variable
+    if (shouldSkipVariable(variable, value, outputtedCSSNames, errors)) {
+      continue;
+    }
+    
     var cssValue = formatCSSValue(value, variable, options);
     if (cssValue !== null) {
       if (options.includeIds) {
         lines.push('  /* ' + variable.id + ' */');
       }
       lines.push('  ' + variable.cssName + ': ' + cssValue + ';');
+      outputtedCSSNames.add(variable.cssName);
     }
   }
   
@@ -780,6 +893,9 @@ function generateThemeCSS(
         var lightValue = variable.valuesByMode[defaultMode.modeId];
         
         if (!darkValue) continue;
+        
+        // Only output if this variable was in the main :root block
+        if (!outputtedCSSNames.has(variable.cssName)) continue;
         
         var darkCss = formatCSSValue(darkValue, variable, options);
         var lightCss = lightValue ? formatCSSValue(lightValue, variable, options) : null;
@@ -804,6 +920,9 @@ function generateThemeCSS(
         
         if (!darkValue) continue;
         
+        // Only output if this variable was in the main :root block
+        if (!outputtedCSSNames.has(variable.cssName)) continue;
+        
         var darkCss = formatCSSValue(darkValue, variable, options);
         var lightCss = lightValue ? formatCSSValue(lightValue, variable, options) : null;
         
@@ -822,7 +941,9 @@ function generateThemeCSS(
 function generateSingleModeCSS(
   collection: any,
   variables: VariableInfo[],
-  options: ExportOptions
+  options: ExportOptions,
+  outputtedCSSNames: Set<string>,
+  errors: string[]
 ): string[] {
   var lines: string[] = [];
   var mode = collection.modes[0];
@@ -834,12 +955,18 @@ function generateSingleModeCSS(
     var value = variable.valuesByMode[mode.modeId];
     if (!value) continue;
     
+    // Check if we should skip this variable
+    if (shouldSkipVariable(variable, value, outputtedCSSNames, errors)) {
+      continue;
+    }
+    
     var cssValue = formatCSSValue(value, variable, options);
     if (cssValue !== null) {
       if (options.includeIds) {
         lines.push('  /* ' + variable.id + ' */');
       }
       lines.push('  ' + variable.cssName + ': ' + cssValue + ';');
+      outputtedCSSNames.add(variable.cssName);
     }
   }
   
