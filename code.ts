@@ -1,6 +1,6 @@
 /// <reference types="@figma/plugin-typings" />
 
-// Variable to CSS v1.0
+// Variable to CSS v1.1
 // Figma Plugin for exporting variable collections to CSS custom properties
 
 // ============================================
@@ -90,8 +90,9 @@ figma.clientStorage.getAsync('windowSize').then(function(size: any) {
 figma.ui.onmessage = async function(msg: any) {
   try {
     if (msg.type === 'resize') {
-      var w = Math.max(500, Math.min(1400, msg.size.w));
-      var h = Math.max(400, Math.min(1000, msg.size.h));
+      // No max constraints - only minimum size
+      var w = Math.max(600, msg.size.w);
+      var h = Math.max(450, msg.size.h);
       figma.ui.resize(w, h);
       figma.clientStorage.setAsync('windowSize', { w: w, h: h });
       return;
