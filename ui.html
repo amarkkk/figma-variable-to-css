@@ -640,7 +640,11 @@
         </div>
         <div class="info-item">
           <span class="info-icon">🌙</span>
-          <span class="info-text"><strong>Theme modes</strong> exported with prefers-color-scheme media queries</span>
+          <span class="info-text"><strong>Theme modes</strong> exported with prefers-color-scheme and [data-theme] selectors</span>
+        </div>
+        <div class="info-item">
+          <span class="info-icon">📱</span>
+          <span class="info-text"><strong>Responsive aliases</strong> with media queries for mode-specific var() references</span>
         </div>
       </div>
       
@@ -784,7 +788,7 @@
       return {
         outputMode: 'fluid',
         aliasMode: 'preserved',
-        darkModeOutput: 'prefers-color-scheme',
+        darkModeOutput: 'both', // Outputs both prefers-color-scheme AND [data-theme="dark"]
         includeTimestamp: true,
         includeIds: false,
         colorFormat: 'hex'

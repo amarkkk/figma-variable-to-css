@@ -1,8 +1,16 @@
 /// <reference types="@figma/plugin-typings" />
 
-// Variable to CSS v1.2
+// Variable to CSS v1.3
 // Figma Plugin for exporting variable collections to CSS custom properties
-// 
+//
+// v1.3 Features:
+// - Multi-mode CSS export: Variables with breakpoint modes (Desktop/Laptop/Tablet/Mobile)
+//   now output media queries for aliases that change var() references per breakpoint
+// - Numeric foundations still use clamp() for fluid scaling
+// - Non-numeric values and aliases with changing refs get proper media queries
+// - Theme modes output both @media (prefers-color-scheme: dark) AND [data-theme="dark"]
+// - Updated breakpoint thresholds: 1679px, 1365px, 839px (desktop-first)
+//
 // v1.2 Fixes:
 // - Preserve intentional double hyphens in variable names
 // - Smart domain prefix: only for Foundations/Aliases, not Mappings
@@ -71,11 +79,13 @@ interface CSSOutput {
 }
 
 // Known breakpoint mode names and their viewport widths
+// These are the ACTUAL viewport widths where each breakpoint applies (for clamp calculations)
+// Media queries use (breakpointPx - 1) for max-width thresholds
 var BREAKPOINT_MODES: Record<string, number> = {
-  'desktop': 1680,
-  'laptop': 1366,
-  'tablet': 840,
-  'mobile': 480
+  'desktop': 1680,  // >=1680px (default, no media query)
+  'laptop': 1366,   // >=1366px, generates @media (max-width: 1679px)
+  'tablet': 840,    // >=840px, generates @media (max-width: 1365px)
+  'mobile': 480     // >=480px, generates @media (max-width: 839px)
 };
 
 var THEME_MODES = ['light', 'dark'];
@@ -210,7 +220,7 @@ function detectBreakpoint(modeName: string): number | undefined {
 
 function detectModeType(modes: ModeInfo[]): 'breakpoint' | 'theme' | 'single' {
   if (modes.length === 1) return 'single';
-  
+
   // Check if all modes have breakpoints
   var hasBreakpoints = true;
   for (var i = 0; i < modes.length; i++) {
@@ -220,7 +230,7 @@ function detectModeType(modes: ModeInfo[]): 'breakpoint' | 'theme' | 'single' {
     }
   }
   if (hasBreakpoints) return 'breakpoint';
-  
+
   // Check if modes are light/dark
   for (var i = 0; i < modes.length; i++) {
     var modeName = modes[i].name.toLowerCase();
@@ -228,8 +238,50 @@ function detectModeType(modes: ModeInfo[]): 'breakpoint' | 'theme' | 'single' {
       return 'theme';
     }
   }
-  
+
   return 'single';
+}
+
+// Check if a variable has different values/aliases across modes
+function hasModeVariance(
+  variable: VariableInfo,
+  modes: Array<{ modeId: string; name: string; breakpointPx: number }>,
+  options: ExportOptions
+): boolean {
+  if (modes.length <= 1) return false;
+
+  var firstValue = formatCSSValue(variable.valuesByMode[modes[0].modeId], variable, options);
+
+  for (var i = 1; i < modes.length; i++) {
+    var value = variable.valuesByMode[modes[i].modeId];
+    if (!value) continue;
+    var cssValue = formatCSSValue(value, variable, options);
+    if (cssValue !== firstValue) return true;
+  }
+
+  return false;
+}
+
+// Check if a variable needs media queries (alias that changes reference, or non-clampable value)
+function needsMediaQueries(
+  variable: VariableInfo,
+  modes: Array<{ modeId: string; name: string; breakpointPx: number }>,
+  options: ExportOptions
+): boolean {
+  // If variable has mode variance, check if it's clampable numeric
+  if (!hasModeVariance(variable, modes, options)) return false;
+
+  // Non-FLOAT types always need media queries (can't use clamp)
+  if (variable.resolvedType !== 'FLOAT') return true;
+
+  // Check if any mode has an alias value
+  for (var i = 0; i < modes.length; i++) {
+    var value = variable.valuesByMode[modes[i].modeId];
+    if (value && value.isAlias) return true;
+  }
+
+  // Numeric values without aliases can use clamp
+  return false;
 }
 
 // ============================================
@@ -640,90 +692,148 @@ function generateFluidCSS(
   errors: string[]
 ): string[] {
   var lines: string[] = [];
-  
+
   // Desktop (largest breakpoint) as default
   var desktopMode = modes[0];
-  lines.push(':root {');
-  
+
+  // Separate variables into:
+  // 1. Variables that can use clamp() - numeric FLOAT values without aliases
+  // 2. Variables that need media queries - aliases that change, or non-FLOAT types
+  var clampableVars: VariableInfo[] = [];
+  var mediaQueryVars: VariableInfo[] = [];
+
   for (var vi = 0; vi < variables.length; vi++) {
     var variable = variables[vi];
     var value = variable.valuesByMode[desktopMode.modeId];
     if (!value) continue;
-    
+
     // Check if we should skip this variable
     if (shouldSkipVariable(variable, value, outputtedCSSNames, errors)) {
       continue;
     }
-    
+
+    if (needsMediaQueries(variable, modes, options)) {
+      mediaQueryVars.push(variable);
+    } else {
+      clampableVars.push(variable);
+    }
+  }
+
+  // Output :root with desktop values and clamp() for numeric variables
+  lines.push(':root {');
+
+  for (var vi = 0; vi < clampableVars.length; vi++) {
+    var variable = clampableVars[vi];
+    var value = variable.valuesByMode[desktopMode.modeId];
     var cssValue = formatCSSValue(value, variable, options);
+
     if (cssValue !== null) {
       if (options.includeIds) {
         lines.push('  /* ' + variable.id + ' */');
       }
-      
-      // Check if this variable has different values across modes
-      var modeValues: any[] = [];
-      for (var mi = 0; mi < modes.length; mi++) {
-        var v = variable.valuesByMode[modes[mi].modeId];
-        if (v && v.resolved !== null && v.resolved !== undefined) {
-          modeValues.push(v.resolved);
-        }
-      }
-      
-      var allSame = true;
-      for (var i = 1; i < modeValues.length; i++) {
-        if (modeValues[i] !== modeValues[0]) {
-          allSame = false;
-          break;
-        }
-      }
-      
-      if (allSame || variable.resolvedType !== 'FLOAT') {
-        lines.push('  ' + variable.cssName + ': ' + cssValue + ';');
-      } else {
+
+      // Check if this variable has different numeric values across modes
+      if (hasModeVariance(variable, modes, options) && variable.resolvedType === 'FLOAT' && !value.isAlias) {
         var clampValue = generateClamp(modes, variable, options);
         lines.push('  ' + variable.cssName + ': ' + clampValue + ';');
+      } else {
+        lines.push('  ' + variable.cssName + ': ' + cssValue + ';');
       }
-      
-      // Mark as outputted
+
       outputtedCSSNames.add(variable.cssName);
     }
   }
-  
+
+  // Also output desktop values for media query variables
+  for (var vi = 0; vi < mediaQueryVars.length; vi++) {
+    var variable = mediaQueryVars[vi];
+    var value = variable.valuesByMode[desktopMode.modeId];
+    var cssValue = formatCSSValue(value, variable, options);
+
+    if (cssValue !== null) {
+      if (options.includeIds) {
+        lines.push('  /* ' + variable.id + ' */');
+      }
+      lines.push('  ' + variable.cssName + ': ' + cssValue + ';');
+      outputtedCSSNames.add(variable.cssName);
+    }
+  }
+
   lines.push('}');
-  lines.push('');
-  
-  // Fallback media queries for browsers that don't support clamp well
-  lines.push('/* Fallback for older browsers */');
-  lines.push('@supports not (width: clamp(1px, 1vw, 2px)) {');
-  
-  for (var i = 1; i < modes.length; i++) {
-    var mode = modes[i];
-    var prevMode = modes[i - 1];
-    
-    lines.push('  @media (max-width: ' + (prevMode.breakpointPx - 1) + 'px) {');
-    lines.push('    :root {');
-    
-    for (var vi = 0; vi < variables.length; vi++) {
-      var variable = variables[vi];
-      var val = variable.valuesByMode[mode.modeId];
-      if (!val) continue;
-      
-      // Only output if this variable was in the main :root block
-      if (!outputtedCSSNames.has(variable.cssName)) continue;
-      
-      var cv = formatCSSValue(val, variable, options);
-      if (cv !== null) {
-        lines.push('      ' + variable.cssName + ': ' + cv + ';');
+
+  // Output media queries for variables that need them (aliases with changing refs, non-numeric values)
+  // These are OUTSIDE @supports because they're not fallbacks - they're the primary mechanism
+  if (mediaQueryVars.length > 0) {
+    for (var i = 1; i < modes.length; i++) {
+      var mode = modes[i];
+      var prevMode = modes[i - 1];
+
+      // Collect variables that have different values at this breakpoint
+      var varsForThisBreakpoint: Array<{ variable: VariableInfo; cssValue: string }> = [];
+
+      for (var vi = 0; vi < mediaQueryVars.length; vi++) {
+        var variable = mediaQueryVars[vi];
+        var val = variable.valuesByMode[mode.modeId];
+        if (!val) continue;
+
+        var cssValue = formatCSSValue(val, variable, options);
+        if (cssValue === null) continue;
+
+        // Always output all modes faithfully per spec (even if same as previous)
+        varsForThisBreakpoint.push({ variable: variable, cssValue: cssValue });
+      }
+
+      if (varsForThisBreakpoint.length > 0) {
+        lines.push('');
+        lines.push('@media (max-width: ' + (prevMode.breakpointPx - 1) + 'px) {');
+        lines.push('  :root {');
+
+        for (var vi = 0; vi < varsForThisBreakpoint.length; vi++) {
+          var item = varsForThisBreakpoint[vi];
+          lines.push('    ' + item.variable.cssName + ': ' + item.cssValue + ';');
+        }
+
+        lines.push('  }');
+        lines.push('}');
       }
     }
-    
-    lines.push('    }');
-    lines.push('  }');
   }
-  
-  lines.push('}');
-  
+
+  // Fallback media queries for clampable variables (for older browsers that don't support clamp)
+  var clampableWithVariance = clampableVars.filter(function(v) {
+    return hasModeVariance(v, modes, options);
+  });
+
+  if (clampableWithVariance.length > 0) {
+    lines.push('');
+    lines.push('/* Fallback for older browsers */');
+    lines.push('@supports not (width: clamp(1px, 1vw, 2px)) {');
+
+    for (var i = 1; i < modes.length; i++) {
+      var mode = modes[i];
+      var prevMode = modes[i - 1];
+
+      lines.push('  @media (max-width: ' + (prevMode.breakpointPx - 1) + 'px) {');
+      lines.push('    :root {');
+
+      for (var vi = 0; vi < clampableWithVariance.length; vi++) {
+        var variable = clampableWithVariance[vi];
+        var val = variable.valuesByMode[mode.modeId];
+        if (!val) continue;
+
+        var cv = formatCSSValue(val, variable, options);
+        if (cv !== null) {
+          lines.push('      ' + variable.cssName + ': ' + cv + ';');
+        }
+      }
+
+      lines.push('    }');
+      lines.push('  }');
+    }
+
+    lines.push('}');
+  }
+
   return lines;
 }
 
@@ -911,7 +1021,7 @@ function generateThemeCSS(
     
     if (useClass) {
       lines.push('');
-      lines.push('.dark {');
+      lines.push('[data-theme="dark"] {');
       
       for (var vi = 0; vi < variables.length; vi++) {
         var variable = variables[vi];
