@@ -231,11 +231,13 @@ function detectModeType(modes: ModeInfo[]): 'breakpoint' | 'theme' | 'single' {
   }
   if (hasBreakpoints) return 'breakpoint';
 
-  // Check if modes are light/dark
+  // Check if modes are light/dark (substring match for names like "Light Mode", "Dark Theme", etc.)
   for (var i = 0; i < modes.length; i++) {
     var modeName = modes[i].name.toLowerCase();
-    if (THEME_MODES.indexOf(modeName) !== -1) {
-      return 'theme';
+    for (var j = 0; j < THEME_MODES.length; j++) {
+      if (modeName.indexOf(THEME_MODES[j]) !== -1) {
+        return 'theme';
+      }
     }
   }
 
