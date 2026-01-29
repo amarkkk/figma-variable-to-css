@@ -916,33 +916,33 @@ function generateSteppedCSS(
   for (var i = 1; i < modes.length; i++) {
     var mode = modes[i];
     var prevMode = modes[i - 1];
-    
+
     lines.push('');
     lines.push('@media (max-width: ' + (prevMode.breakpointPx - 1) + 'px) {');
     lines.push('  :root {');
-    
+
     for (var vi = 0; vi < variables.length; vi++) {
       var variable = variables[vi];
       var value = variable.valuesByMode[mode.modeId];
-      var prevValue = variable.valuesByMode[prevMode.modeId];
-      
+
       if (!value) continue;
-      
+
       // Only output if this variable was in the main :root block
       if (!outputtedCSSNames.has(variable.cssName)) continue;
-      
+
       var cssValue = formatCSSValue(value, variable, options);
-      var prevCssValue = prevValue ? formatCSSValue(prevValue, variable, options) : null;
-      
-      if (cssValue !== null && cssValue !== prevCssValue) {
+
+      // Output ALL values to ensure complete token chain
+      // Even if value matches previous breakpoint, the variable must be declared for alias resolution
+      if (cssValue !== null) {
         lines.push('    ' + variable.cssName + ': ' + cssValue + ';');
       }
     }
-    
+
     lines.push('  }');
     lines.push('}');
   }
-  
+
   return lines;
 }
 
@@ -954,30 +954,31 @@ function generateThemeCSS(
   errors: string[]
 ): string[] {
   var lines: string[] = [];
-  
+
   var lightMode: any = null;
   var darkMode: any = null;
-  
+
   for (var i = 0; i < collection.modes.length; i++) {
     var m = collection.modes[i];
     if (m.name.toLowerCase().indexOf('light') !== -1) lightMode = m;
     if (m.name.toLowerCase().indexOf('dark') !== -1) darkMode = m;
   }
-  
+
   var defaultMode = lightMode || collection.modes[0];
-  
+
+  // Generate :root with default (light) mode
   lines.push(':root {');
-  
+
   for (var vi = 0; vi < variables.length; vi++) {
     var variable = variables[vi];
     var value = variable.valuesByMode[defaultMode.modeId];
     if (!value) continue;
-    
+
     // Check if we should skip this variable
     if (shouldSkipVariable(variable, value, outputtedCSSNames, errors)) {
       continue;
     }
-    
+
     var cssValue = formatCSSValue(value, variable, options);
     if (cssValue !== null) {
       if (options.includeIds) {
@@ -987,66 +988,125 @@ function generateThemeCSS(
       outputtedCSSNames.add(variable.cssName);
     }
   }
-  
+
   lines.push('}');
-  
-  if (darkMode) {
+
+  // If we have both light and dark modes, generate all theme CSS
+  if (darkMode && lightMode) {
     var usePrefersColorScheme = options.darkModeOutput === 'prefers-color-scheme' || options.darkModeOutput === 'both';
     var useClass = options.darkModeOutput === 'class' || options.darkModeOutput === 'both';
-    
+
+    // Generate @media (prefers-color-scheme: light) for explicit light mode
+    if (usePrefersColorScheme) {
+      lines.push('');
+      lines.push('@media (prefers-color-scheme: light) {');
+      lines.push('  :root {');
+
+      for (var vi = 0; vi < variables.length; vi++) {
+        var variable = variables[vi];
+        var lightValue = variable.valuesByMode[lightMode.modeId];
+
+        if (!lightValue) continue;
+
+        // Only output if this variable was in the main :root block
+        if (!outputtedCSSNames.has(variable.cssName)) continue;
+
+        var lightCss = formatCSSValue(lightValue, variable, options);
+
+        // Output ALL values to ensure complete token chain
+        // Even if light === dark, the variable must be declared for alias resolution
+        if (lightCss !== null) {
+          lines.push('    ' + variable.cssName + ': ' + lightCss + ';');
+        }
+      }
+
+      lines.push('  }');
+      lines.push('}');
+    }
+
+    // Generate @media (prefers-color-scheme: dark)
     if (usePrefersColorScheme) {
       lines.push('');
       lines.push('@media (prefers-color-scheme: dark) {');
       lines.push('  :root {');
-      
+
       for (var vi = 0; vi < variables.length; vi++) {
         var variable = variables[vi];
         var darkValue = variable.valuesByMode[darkMode.modeId];
-        var lightValue = variable.valuesByMode[defaultMode.modeId];
-        
+
         if (!darkValue) continue;
-        
+
         // Only output if this variable was in the main :root block
         if (!outputtedCSSNames.has(variable.cssName)) continue;
-        
+
         var darkCss = formatCSSValue(darkValue, variable, options);
-        var lightCss = lightValue ? formatCSSValue(lightValue, variable, options) : null;
-        
-        if (darkCss !== null && darkCss !== lightCss) {
+
+        // Output ALL values to ensure complete token chain
+        // Even if light === dark, the variable must be declared for alias resolution
+        if (darkCss !== null) {
           lines.push('    ' + variable.cssName + ': ' + darkCss + ';');
         }
       }
-      
+
       lines.push('  }');
       lines.push('}');
     }
-    
+
+    // Generate explicit theme selectors for manual switching
+    lines.push('');
+    lines.push('/* Explicit theme selectors - These override system preferences');
+    lines.push('   and enable manual theme switching via JavaScript */');
+
+    // Generate [data-theme="light"]
+    lines.push('[data-theme="light"] {');
+
+    for (var vi = 0; vi < variables.length; vi++) {
+      var variable = variables[vi];
+      var lightValue = variable.valuesByMode[lightMode.modeId];
+
+      if (!lightValue) continue;
+
+      // Only output if this variable was in the main :root block
+      if (!outputtedCSSNames.has(variable.cssName)) continue;
+
+      var lightCss = formatCSSValue(lightValue, variable, options);
+
+      // Output ALL values to ensure complete token chain
+      // Even if light === dark, the variable must be declared for alias resolution
+      if (lightCss !== null) {
+        lines.push('  ' + variable.cssName + ': ' + lightCss + ';');
+      }
+    }
+
+    lines.push('}');
+
+    // Generate [data-theme="dark"] only if useClass is true
     if (useClass) {
       lines.push('');
       lines.push('[data-theme="dark"] {');
-      
+
       for (var vi = 0; vi < variables.length; vi++) {
         var variable = variables[vi];
         var darkValue = variable.valuesByMode[darkMode.modeId];
-        var lightValue = variable.valuesByMode[defaultMode.modeId];
-        
+
         if (!darkValue) continue;
-        
+
         // Only output if this variable was in the main :root block
         if (!outputtedCSSNames.has(variable.cssName)) continue;
-        
+
         var darkCss = formatCSSValue(darkValue, variable, options);
-        var lightCss = lightValue ? formatCSSValue(lightValue, variable, options) : null;
-        
-        if (darkCss !== null && darkCss !== lightCss) {
+
+        // Output ALL values to ensure complete token chain
+        // Even if light === dark, the variable must be declared for alias resolution
+        if (darkCss !== null) {
           lines.push('  ' + variable.cssName + ': ' + darkCss + ';');
         }
       }
-      
+
       lines.push('}');
     }
   }
-  
+
   return lines;
 }
 
