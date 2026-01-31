@@ -1,157 +1,83 @@
 # Variable to CSS
 
-A Figma plugin that exports all variable collections to CSS custom properties with clamp() fluid scaling, media queries, and preserved alias chains.
+> Export Figma variables to CSS with fluid scaling and responsive media queries.
+
+> **⚠️ Development Status**: This plugin is currently in development and not yet published to the Figma Community. Follow the installation instructions below to use it locally.
+
+> **🔒 Privacy**: This plugin operates entirely locally. No data is sent to external servers (`networkAccess: { allowedDomains: ["none"] }`).
+
+## Use Case
+
+This plugin bridges the gap between Figma's variable system and production CSS. It's designed for design systems that use multi-layered token architectures where foundation values need to scale responsively across breakpoints.
+
+**Primary workflow:**
+1. Define your design tokens as Figma variables with breakpoint modes (Desktop, Laptop, Tablet, Mobile)
+2. Run the plugin to generate production-ready CSS with `clamp()` for fluid scaling
+3. Copy or download the CSS file for your codebase
+
+**Best suited for:**
+- Design systems with responsive spacing and typography scales
+- Multi-layered token architectures (foundations -> aliases -> mappings)
+- Teams that want CSS custom properties that automatically interpolate between breakpoints
+
+## Token Architecture Compatibility
+
+This plugin is optimized for a specific token structure. It works best with collections named using the pattern **"Domain - Layer"**:
+
+| Collection Name Example | Detected Layer Type |
+|------------------------|---------------------|
+| `Typo - 1. Foundations` | Foundations (raw values, responsive modes) |
+| `Space - 2. Aliases` | Aliases (semantic names, single mode) |
+| `Dimension - 2.1 Aliases Extended` | Aliases Extended (component variations, responsive modes) |
+| `Color - 4. Mappings` | Mappings (component-scoped tokens) |
+
+**Breakpoint modes must be named:** Desktop, Laptop, Tablet, Mobile
+
+**Theme modes must contain:** "Light" or "Dark" in the name
+
+If your token structure differs, the plugin will still work but may not detect layers and modes optimally.
 
 ## Features
 
-- **Dynamic Collection Discovery** — Automatically detects all variable collections without hardcoded names
-- **Fluid Scaling** — Generates CSS `clamp()` for smooth interpolation between breakpoints
-- **Stepped Fallback** — Media query-based fallback for older browsers
-- **Alias Preservation** — Option to keep `var()` reference chains or resolve to final values
-- **Theme Support** — Handles light/dark modes with `prefers-color-scheme` or `.dark` class
-- **Multiple Variable Types** — Supports COLOR, FLOAT, STRING, and BOOLEAN variables
+- **Dynamic Collection Discovery** - Automatically detects all variable collections without hardcoded names
+- **Theme Support** - Handles light/dark modes with `@media (prefers-color-scheme)` and `[data-theme]` selectors
+- **Fluid Scaling** - Generates CSS `clamp()` for smooth interpolation between breakpoints (Desktop 1680px -> Mobile 480px)
+- **Stepped Fallback** - Media query-based fallback inside `@supports not` for older browsers that don't support clamp()
+- **Multi-Mode Alias Support** - Aliases that change `var()` references per breakpoint get proper media queries (v1.3)
+- **Preserved Alias Chains** - Outputs `var()` references to maintain design system hierarchy in CSS
+- **Multiple Variable Types** - Supports COLOR, FLOAT, STRING, and BOOLEAN variables
+- **Figma Dev Mode Compatibility** - CSS naming matches Figma's dev mode output, so generated CSS aligns with what developers see when inspecting components
+- **Circular Reference Detection** - Skips self-referencing aliases to prevent infinite loops
 
 ## Installation
 
-1. Clone this repository
-2. Run `npm install` to install dependencies
-3. Run `npm run build` to compile TypeScript
-4. In Figma: Plugins → Development → Import plugin from manifest
-5. Select the `manifest.json` file
+1. Clone or download this repository
+2. In Figma Desktop: **Plugins -> Development -> Import plugin from manifest**
+3. Select the `manifest.json` file from this folder
 
 ## Usage
 
 1. Open a Figma file with variable collections
-2. Run the plugin from Plugins menu
-3. Review detected collections and their mode types
-4. Configure output options:
-   - **Scaling Mode**: Fluid (clamp) or Stepped (media queries)
-   - **Alias Handling**: Preserve var() references or resolve to values
-   - **Dark Mode Output**: prefers-color-scheme, .dark class, or both
-5. Click "Generate CSS" to preview
-6. Copy to clipboard or download the CSS file
+2. Run the plugin from **Plugins -> Development -> Variable to CSS**
+3. Review detected collections in the sidebar
+4. Click **"Generate CSS"** to preview the output
+5. **Copy to clipboard** or **Download** the CSS file
 
-## Output Options
+The plugin auto-detects:
+- **Breakpoint modes** - Generates responsive CSS with clamp() or media queries
+- **Theme modes** - Generates prefers-color-scheme and data-attribute selectors
+- **Single mode** - Simple `:root` output
 
-### Scaling Mode
+## Screenshots
 
-**Fluid (clamp)** — Best for modern browsers
-```css
-:root {
-  --space-vertical-rhythm-1: clamp(25.6px, calc(10.48px + 0.9697vw), 32px);
-}
-```
-
-**Stepped (media queries)** — Maximum compatibility
-```css
-:root { --space-vertical-rhythm-1: 32px; }
-@media (max-width: 1365px) { :root { --space-vertical-rhythm-1: 30.48px; } }
-@media (max-width: 839px) { :root { --space-vertical-rhythm-1: 27.93px; } }
-@media (max-width: 479px) { :root { --space-vertical-rhythm-1: 25.6px; } }
-```
-
-### Alias Handling
-
-**Preserved References** — Maintains design system structure
-```css
---button-padding-x: var(--space-micro-5);
---space-micro-5: var(--space-fixed-5);
---space-fixed-5: 16px;
-```
-
-**Resolved Values** — Flat output for simpler debugging
-```css
---button-padding-x: 16px;
-```
-
-## Variable Architecture Support
-
-The plugin understands multi-layer token architectures:
-
-```
-Foundations (Layer 1) — Raw values with responsive modes
-       ↓
-Aliases (Layer 2) — Semantic names, single mode
-       ↓
-Aliases Extended (Layer 2.1) — Component variations, responsive modes
-       ↓
-Mappings (Layer 3) — Component-scoped tokens, single mode
-```
-
-## Mode Detection
-
-The plugin automatically detects mode types:
-
-- **Breakpoint modes**: Desktop, Laptop, Tablet, Mobile → generates responsive CSS
-- **Theme modes**: Light, Dark → generates `prefers-color-scheme` or class-based CSS
-- **Single mode**: Simple `:root` output
-
-## CSS Naming Convention
-
-Figma variable names are transformed to CSS custom properties:
-
-| Figma Name | CSS Name |
-|------------|----------|
-| `fixed/1` (in Space collection) | `--space-fixed-1` |
-| `space/micro/5` | `--space-micro-5` |
-| `button/padding-x` (in Mappings) | `--button-padding-x` |
-| `brand/500` (in Color collection) | `--color-brand-500` |
-
-Rules:
-- Foundation variables get collection domain prefix
-- Mapping variables keep their semantic names (no domain prefix)
-- `/` → `-`, `--` → `-`, `.` → `-`
-- All lowercase
-
-## Breakpoint Configuration
-
-Default breakpoints (detected from mode names):
-
-| Mode | Viewport |
-|------|----------|
-| Desktop | 1680px |
-| Laptop | 1366px |
-| Tablet | 840px |
-| Mobile | 480px |
-
-## Development
-
-```bash
-# Install dependencies
-npm install
-
-# Compile TypeScript (one-time)
-npm run build
-
-# Watch mode for development
-npm run watch
-```
-
-## File Structure
-
-```
-figma-variable-to-css/
-├── manifest.json      # Figma plugin manifest
-├── code.ts           # Plugin backend (TypeScript)
-├── code.js           # Compiled output (generated)
-├── ui.html           # Plugin UI (HTML/CSS/JS)
-├── package.json      # Dependencies
-└── tsconfig.json     # TypeScript configuration
-```
+<!-- Add screenshots here -->
 
 ## Known Limitations
 
-- CSS `clamp()` only supports linear interpolation; non-linear curves (like t³) are approximated
-- Remote/library variables are skipped
+- CSS `clamp()` only supports linear interpolation; non-linear curves are approximated
+- Remote/library variables are skipped (only local variables are processed)
 - Boolean variables are output as 0/1
-
-## Roadmap
-
-- [ ] Piecewise clamp for better curve approximation
-- [ ] REM/EM unit conversion
-- [ ] SCSS partials output
-- [ ] JSON export for build pipelines
-- [ ] Collection filtering in UI
+- Collection naming must follow expected patterns for optimal layer detection
 
 ## License
 
@@ -159,4 +85,6 @@ MIT
 
 ## Author
 
-Márk Andrássy — [amark.design](https://amark.design)
+Created by [Márk Andrássy](https://github.com/amarkkk)
+
+Part of a collection of Figma plugins for design token management.
