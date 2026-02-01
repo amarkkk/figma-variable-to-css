@@ -41,6 +41,7 @@ interface ModeInfo {
 interface VariableInfo {
   id: string;
   name: string;
+  description: string;
   collectionId: string;
   collectionName: string;
   domain: string;
@@ -67,6 +68,16 @@ interface ExportOptions {
   includeTimestamp: boolean;
   includeIds: boolean;
   colorFormat: 'hex' | 'oklch';
+  includeLegacyFallbacks: boolean;
+  // List of CSS variable names that should use min(100vw, max) instead of clamp()
+  // If null/undefined, auto-detect based on "viewport" in name/description
+  viewportRelativeOverrides?: string[];
+}
+
+interface ViewportCandidate {
+  cssName: string;
+  originalName: string;
+  reason: 'name' | 'description';
 }
 
 interface CSSOutput {
@@ -75,6 +86,10 @@ interface CSSOutput {
     collections: number;
     variables: number;
     errors: string[];
+    // Variables that were treated as viewport-relative (actually used min())
+    viewportRelativeVars: string[];
+    // Candidates detected for viewport-relative treatment (for UI to show)
+    viewportCandidates: ViewportCandidate[];
   };
 }
 
@@ -334,6 +349,7 @@ async function handleGenerateCSS(options: ExportOptions) {
       var varInfo: VariableInfo = {
         id: variable.id,
         name: variable.name,
+        description: variable.description || '',
         collectionId: collection.id,
         collectionName: collection.name,
         domain: domain,
@@ -369,15 +385,19 @@ async function handleGenerateCSS(options: ExportOptions) {
   
   // Group by collection for ordered output
   var collectionGroups = groupByCollection(allVariables, collections);
-  
+
+  // Track viewport-relative variables and candidates for reporting
+  var viewportRelativeVars: string[] = [];
+  var viewportCandidates: ViewportCandidate[] = [];
+
   // Generate CSS with deduplication
-  var css = generateCSSOutput(collectionGroups, collections, options, outputtedCSSNames, errors);
-  
+  var css = generateCSSOutput(collectionGroups, collections, options, outputtedCSSNames, errors, viewportRelativeVars, viewportCandidates);
+
   var nonRemoteCount = 0;
   for (var i = 0; i < collections.length; i++) {
     if (!collections[i].remote) nonRemoteCount++;
   }
-  
+
   figma.ui.postMessage({
     type: 'css-generated',
     output: {
@@ -385,7 +405,9 @@ async function handleGenerateCSS(options: ExportOptions) {
       stats: {
         collections: nonRemoteCount,
         variables: allVariables.length,
-        errors: errors
+        errors: errors,
+        viewportRelativeVars: viewportRelativeVars,
+        viewportCandidates: viewportCandidates
       }
     }
   });
@@ -547,11 +569,13 @@ function generateCSSOutput(
   collections: any[],
   options: ExportOptions,
   outputtedCSSNames: Set<string>,
-  errors: string[]
+  errors: string[],
+  viewportRelativeVars: string[],
+  viewportCandidates: ViewportCandidate[]
 ): string {
   var lines: string[] = [];
   var timestamp = new Date().toISOString();
-  
+
   // Header
   lines.push('/* ==========================================================================');
   lines.push('   DESIGN TOKENS — Generated from Figma Variables');
@@ -611,7 +635,7 @@ function generateCSSOutput(
     
     var sectionLines: string[];
     if (modeType === 'breakpoint') {
-      sectionLines = generateBreakpointCSS(collection, variables, options, outputtedCSSNames, errors);
+      sectionLines = generateBreakpointCSS(collection, variables, options, outputtedCSSNames, errors, viewportRelativeVars, viewportCandidates);
     } else if (modeType === 'theme') {
       sectionLines = generateThemeCSS(collection, variables, options, outputtedCSSNames, errors);
     } else {
@@ -656,10 +680,12 @@ function generateBreakpointCSS(
   variables: VariableInfo[],
   options: ExportOptions,
   outputtedCSSNames: Set<string>,
-  errors: string[]
+  errors: string[],
+  viewportRelativeVars: string[],
+  viewportCandidates: ViewportCandidate[]
 ): string[] {
   var lines: string[] = [];
-  
+
   // Get modes sorted by breakpoint (largest first)
   var sortedModes: Array<{ modeId: string; name: string; breakpointPx: number }> = [];
   for (var i = 0; i < collection.modes.length; i++) {
@@ -671,18 +697,18 @@ function generateBreakpointCSS(
     });
   }
   sortedModes.sort(function(a, b) { return b.breakpointPx - a.breakpointPx; });
-  
+
   var resultLines: string[];
   if (options.outputMode === 'fluid' && sortedModes.length >= 2) {
-    resultLines = generateFluidCSS(sortedModes, variables, options, outputtedCSSNames, errors);
+    resultLines = generateFluidCSS(sortedModes, variables, options, outputtedCSSNames, errors, viewportRelativeVars, viewportCandidates);
   } else {
     resultLines = generateSteppedCSS(sortedModes, variables, options, outputtedCSSNames, errors);
   }
-  
+
   for (var i = 0; i < resultLines.length; i++) {
     lines.push(resultLines[i]);
   }
-  
+
   return lines;
 }
 
@@ -691,7 +717,9 @@ function generateFluidCSS(
   variables: VariableInfo[],
   options: ExportOptions,
   outputtedCSSNames: Set<string>,
-  errors: string[]
+  errors: string[],
+  viewportRelativeVars: string[],
+  viewportCandidates: ViewportCandidate[]
 ): string[] {
   var lines: string[] = [];
 
@@ -699,7 +727,7 @@ function generateFluidCSS(
   var desktopMode = modes[0];
 
   // Separate variables into:
-  // 1. Variables that can use clamp() - numeric FLOAT values without aliases
+  // 1. Variables that can use clamp()/min() - numeric FLOAT values without aliases
   // 2. Variables that need media queries - aliases that change, or non-FLOAT types
   var clampableVars: VariableInfo[] = [];
   var mediaQueryVars: VariableInfo[] = [];
@@ -718,10 +746,23 @@ function generateFluidCSS(
       mediaQueryVars.push(variable);
     } else {
       clampableVars.push(variable);
+
+      // Check if this is a viewport-relative candidate (for UI display)
+      // Only check FLOAT variables that have mode variance
+      if (variable.resolvedType === 'FLOAT' && !value.isAlias && hasModeVariance(variable, modes, options)) {
+        var reason = getViewportCandidateReason(variable);
+        if (reason) {
+          viewportCandidates.push({
+            cssName: variable.cssName,
+            originalName: variable.name,
+            reason: reason
+          });
+        }
+      }
     }
   }
 
-  // Output :root with desktop values and clamp() for numeric variables
+  // Output :root with desktop values and clamp()/min() for numeric variables
   lines.push(':root {');
 
   for (var vi = 0; vi < clampableVars.length; vi++) {
@@ -736,8 +777,12 @@ function generateFluidCSS(
 
       // Check if this variable has different numeric values across modes
       if (hasModeVariance(variable, modes, options) && variable.resolvedType === 'FLOAT' && !value.isAlias) {
-        var clampValue = generateClamp(modes, variable, options);
-        lines.push('  ' + variable.cssName + ': ' + clampValue + ';');
+        var fluidResult = generateFluidValue(modes, variable, options, viewportRelativeVars);
+        // Add comment for viewport-relative variables
+        if (fluidResult.isViewportRelative) {
+          lines.push('  /* Viewport-relative: uses min() instead of clamp() */');
+        }
+        lines.push('  ' + variable.cssName + ': ' + fluidResult.value + ';');
       } else {
         lines.push('  ' + variable.cssName + ': ' + cssValue + ';');
       }
@@ -801,82 +846,132 @@ function generateFluidCSS(
     }
   }
 
-  // Fallback media queries for clampable variables (for older browsers that don't support clamp)
-  var clampableWithVariance = clampableVars.filter(function(v) {
-    return hasModeVariance(v, modes, options);
-  });
+  // Fallback media queries for clampable variables (for older browsers that don't support clamp/min)
+  // Only include if option is enabled
+  if (options.includeLegacyFallbacks) {
+    var clampableWithVariance = clampableVars.filter(function(v) {
+      return hasModeVariance(v, modes, options);
+    });
 
-  if (clampableWithVariance.length > 0) {
-    lines.push('');
-    lines.push('/* Fallback for older browsers */');
-    lines.push('@supports not (width: clamp(1px, 1vw, 2px)) {');
+    if (clampableWithVariance.length > 0) {
+      lines.push('');
+      lines.push('/* Fallback for older browsers */');
+      lines.push('@supports not (width: clamp(1px, 1vw, 2px)) {');
 
-    for (var i = 1; i < modes.length; i++) {
-      var mode = modes[i];
-      var prevMode = modes[i - 1];
+      for (var i = 1; i < modes.length; i++) {
+        var mode = modes[i];
+        var prevMode = modes[i - 1];
 
-      lines.push('  @media (max-width: ' + (prevMode.breakpointPx - 1) + 'px) {');
-      lines.push('    :root {');
+        lines.push('  @media (max-width: ' + (prevMode.breakpointPx - 1) + 'px) {');
+        lines.push('    :root {');
 
-      for (var vi = 0; vi < clampableWithVariance.length; vi++) {
-        var variable = clampableWithVariance[vi];
-        var val = variable.valuesByMode[mode.modeId];
-        if (!val) continue;
+        for (var vi = 0; vi < clampableWithVariance.length; vi++) {
+          var variable = clampableWithVariance[vi];
+          var val = variable.valuesByMode[mode.modeId];
+          if (!val) continue;
 
-        var cv = formatCSSValue(val, variable, options);
-        if (cv !== null) {
-          lines.push('      ' + variable.cssName + ': ' + cv + ';');
+          var cv = formatCSSValue(val, variable, options);
+          if (cv !== null) {
+            lines.push('      ' + variable.cssName + ': ' + cv + ';');
+          }
         }
-      }
 
-      lines.push('    }');
-      lines.push('  }');
+        lines.push('    }');
+        lines.push('  }');
+        }
+
+      lines.push('}');
     }
-
-    lines.push('}');
   }
 
   return lines;
 }
 
-function generateClamp(
+// Check if a variable is a candidate for viewport-relative treatment
+// Returns the reason if it's a candidate, null otherwise
+function getViewportCandidateReason(variable: VariableInfo): 'name' | 'description' | null {
+  var nameLower = variable.name.toLowerCase();
+  var descLower = variable.description.toLowerCase();
+  if (nameLower.indexOf('viewport') !== -1) return 'name';
+  if (descLower.indexOf('viewport') !== -1) return 'description';
+  return null;
+}
+
+// Check if a variable should be treated as viewport-relative based on options
+function shouldUseViewportRelative(variable: VariableInfo, options: ExportOptions): boolean {
+  // If overrides are provided, use them exclusively
+  if (options.viewportRelativeOverrides && options.viewportRelativeOverrides.length > 0) {
+    return options.viewportRelativeOverrides.indexOf(variable.cssName) !== -1;
+  }
+  // Otherwise, no automatic detection - user must explicitly select
+  return false;
+}
+
+// Generate CSS value for a variable - either clamp() or min() for viewport-relative
+function generateFluidValue(
   modes: Array<{ modeId: string; name: string; breakpointPx: number }>,
   variable: VariableInfo,
-  options: ExportOptions
-): string {
+  options: ExportOptions,
+  viewportRelativeVars: string[]
+): { value: string; isViewportRelative: boolean } {
   var maxMode = modes[0];
   var minMode = modes[modes.length - 1];
-  
+
   var maxVal = variable.valuesByMode[maxMode.modeId];
   var minVal = variable.valuesByMode[minMode.modeId];
-  
+
   var maxValue = maxVal ? maxVal.resolved : null;
   var minValue = minVal ? minVal.resolved : null;
-  
+
   if (typeof maxValue !== 'number' || typeof minValue !== 'number') {
-    return maxValue + 'px';
+    return { value: maxValue + 'px', isViewportRelative: false };
   }
-  
+
+  // Check if this variable should use viewport-relative formula
+  if (shouldUseViewportRelative(variable, options)) {
+    // Track this variable for reporting
+    viewportRelativeVars.push(variable.cssName);
+    // Use min(100vw, maxValue) - the container should be 100% of viewport up to max
+    return {
+      value: 'min(100vw, ' + round(maxValue, 2) + 'px)',
+      isViewportRelative: true
+    };
+  }
+
+  // Standard clamp() interpolation
   var maxVP = maxMode.breakpointPx;
   var minVP = minMode.breakpointPx;
-  
+
   var slope = (maxValue - minValue) / (maxVP - minVP);
   var intercept = minValue - slope * minVP;
-  
+
   var slopeVW = round(slope * 100, 4);
   var interceptPx = round(intercept, 2);
-  
+
   var minPx = round(Math.min(minValue, maxValue), 2);
   var maxPx = round(Math.max(minValue, maxValue), 2);
-  
+
   var preferred: string;
   if (interceptPx >= 0) {
     preferred = interceptPx + 'px + ' + slopeVW + 'vw';
   } else {
     preferred = slopeVW + 'vw - ' + Math.abs(interceptPx) + 'px';
   }
-  
-  return 'clamp(' + minPx + 'px, calc(' + preferred + '), ' + maxPx + 'px)';
+
+  return {
+    value: 'clamp(' + minPx + 'px, calc(' + preferred + '), ' + maxPx + 'px)',
+    isViewportRelative: false
+  };
+}
+
+// Legacy function for backward compatibility - delegates to generateFluidValue
+function generateClamp(
+  modes: Array<{ modeId: string; name: string; breakpointPx: number }>,
+  variable: VariableInfo,
+  options: ExportOptions
+): string {
+  var dummyTracker: string[] = [];
+  return generateFluidValue(modes, variable, options, dummyTracker).value;
 }
 
 function generateSteppedCSS(

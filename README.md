@@ -20,6 +20,8 @@ This plugin bridges the gap between Figma's variable system and production CSS. 
 - Multi-layered token architectures (foundations -> aliases -> mappings)
 - Teams that want CSS custom properties that automatically interpolate between breakpoints
 
+> 📖 **Design System Documentation:** See [Design_Token_System_Summary.md](./Design_Token_System_Summary.md) for the underlying design token conventions and formulas this plugin is built upon.
+
 ## Token Architecture Compatibility
 
 This plugin is optimized for a specific token structure. It works best with collections named using the pattern **"Domain - Layer"**:
@@ -39,15 +41,19 @@ If your token structure differs, the plugin will still work but may not detect l
 
 ## Features
 
-- **Dynamic Collection Discovery** - Automatically detects all variable collections without hardcoded names
-- **Theme Support** - Handles light/dark modes with `@media (prefers-color-scheme)` and `[data-theme]` selectors
-- **Fluid Scaling** - Generates CSS `clamp()` for smooth interpolation between breakpoints (Desktop 1680px -> Mobile 480px)
-- **Stepped Fallback** - Media query-based fallback inside `@supports not` for older browsers that don't support clamp()
-- **Multi-Mode Alias Support** - Aliases that change `var()` references per breakpoint get proper media queries (v1.3)
-- **Preserved Alias Chains** - Outputs `var()` references to maintain design system hierarchy in CSS
-- **Multiple Variable Types** - Supports COLOR, FLOAT, STRING, and BOOLEAN variables
-- **Figma Dev Mode Compatibility** - CSS naming matches Figma's dev mode output, so generated CSS aligns with what developers see when inspecting components
-- **Circular Reference Detection** - Skips self-referencing aliases to prevent infinite loops
+- **Dynamic Collection Discovery** — Automatically detects all variable collections without hardcoded names
+- **Theme Support** — Handles light/dark modes with `@media (prefers-color-scheme)` and `[data-theme]` selectors
+- **Fluid Scaling** — Generates CSS `clamp()` for smooth interpolation between breakpoints (Desktop 1680px → Mobile 480px)
+- **Viewport-Relative Variables** — Variables with "viewport" in name/description can use `min(100vw, max)` instead of `clamp()` to avoid unwanted clamping
+- **Multi-Mode Alias Support** — Aliases that change `var()` references per breakpoint get proper media queries
+- **Preserved Alias Chains** — Outputs `var()` references to maintain design system hierarchy in CSS
+- **Optional Legacy Fallbacks** — `@supports not` fallback blocks for older browsers (off by default to reduce file size)
+- **CSS Preview Search** — Search and navigate through generated CSS directly in the plugin
+- **Multiple Variable Types** — Supports COLOR, FLOAT, STRING, and BOOLEAN variables
+- **Figma Dev Mode Compatibility** — CSS naming matches Figma's dev mode output
+- **Circular Reference Detection** — Skips self-referencing aliases to prevent infinite loops
+
+> 📋 See [CHANGELOG.md](./CHANGELOG.md) for version history and detailed release notes.
 
 ## Installation
 

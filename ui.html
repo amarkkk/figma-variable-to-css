@@ -231,7 +231,168 @@
     .info-text strong {
       color: var(--text-primary);
     }
-    
+
+    .info-text code {
+      font-family: 'SF Mono', 'Monaco', monospace;
+      font-size: 10px;
+      background: var(--bg-tertiary);
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+
+    /* Checkbox Options */
+    .checkbox-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .checkbox-option input[type="checkbox"] {
+      accent-color: var(--accent-primary);
+      width: 14px;
+      height: 14px;
+    }
+
+    .checkbox-option span {
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    .option-hint {
+      margin-top: 6px;
+      font-size: 10px;
+      color: var(--text-tertiary);
+      line-height: 1.4;
+    }
+
+    /* Viewport Candidates Panel - Warning Style */
+    .viewport-panel {
+      padding: 16px;
+      background: var(--warning-bg);
+      border: 1px solid var(--warning-border);
+      border-radius: 6px;
+      margin: 12px;
+    }
+
+    .viewport-panel-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .viewport-panel-icon {
+      font-size: 16px;
+    }
+
+    .viewport-panel h3 {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--warning-text);
+      margin: 0;
+    }
+
+    .viewport-panel-description {
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+
+    .viewport-panel-description code {
+      font-family: 'SF Mono', 'Monaco', monospace;
+      font-size: 10px;
+      background: rgba(0,0,0,0.1);
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+
+    .viewport-candidate-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .viewport-candidate-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg-primary);
+      padding: 8px 10px;
+      border-radius: 4px;
+      border: 1px solid var(--border-medium);
+    }
+
+    .viewport-candidate-item input[type="checkbox"] {
+      accent-color: var(--warning-text);
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+    }
+
+    .viewport-candidate-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .viewport-candidate-name {
+      font-family: 'SF Mono', 'Monaco', monospace;
+      font-size: 10px;
+      color: var(--text-primary);
+      word-break: break-all;
+    }
+
+    .viewport-candidate-reason {
+      font-size: 9px;
+      color: var(--text-tertiary);
+      margin-top: 2px;
+    }
+
+    .viewport-panel-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-regenerate {
+      background: var(--warning-text);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    .btn-regenerate:hover {
+      opacity: 0.9;
+    }
+
+    .btn-regenerate:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-select-all {
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid var(--border-strong);
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 10px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn-select-all:hover {
+      background: var(--bg-hover);
+    }
+
     /* File Name Options */
     .filename-section {
       padding: 16px;
@@ -317,19 +478,122 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 12px;
     }
-    
+
     .preview-header h2 {
       font-size: 11px;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.05em;
       color: var(--text-tertiary);
+      flex-shrink: 0;
     }
-    
+
+    .preview-search-wrapper {
+      flex: 1;
+      max-width: 300px;
+      position: relative;
+    }
+
+    .preview-search {
+      width: 100%;
+      padding: 6px 10px 6px 28px;
+      border: 1px solid var(--border-strong);
+      border-radius: 4px;
+      font-size: 11px;
+      background: var(--bg-primary);
+      color: var(--text-secondary);
+    }
+
+    .preview-search:focus {
+      outline: none;
+      border-color: var(--accent-primary);
+    }
+
+    .preview-search::placeholder {
+      color: var(--text-disabled);
+    }
+
+    .preview-search-icon {
+      position: absolute;
+      left: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 14px;
+      height: 14px;
+      color: var(--text-disabled);
+      pointer-events: none;
+    }
+
+    .search-results-info {
+      font-size: 10px;
+      color: var(--text-tertiary);
+      flex-shrink: 0;
+      min-width: 80px;
+      text-align: right;
+    }
+
+    .search-nav-buttons {
+      display: flex;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .search-nav-btn {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-medium);
+      border-radius: 3px;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--text-secondary);
+      transition: background 0.15s;
+    }
+
+    .search-nav-btn:hover {
+      background: var(--bg-hover);
+    }
+
+    .search-nav-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .search-nav-btn svg {
+      width: 12px;
+      height: 12px;
+    }
+
     .preview-stats {
       font-size: 10px;
       color: var(--text-tertiary);
+      flex-shrink: 0;
+    }
+
+    /* Search highlight */
+    .search-highlight {
+      background: #fef08a;
+      color: #000;
+      border-radius: 2px;
+    }
+
+    .search-highlight-current {
+      background: #fb923c;
+      color: #000;
+    }
+
+    [data-theme="dark"] .search-highlight {
+      background: #854d0e;
+      color: #fff;
+    }
+
+    [data-theme="dark"] .search-highlight-current {
+      background: #ea580c;
+      color: #fff;
     }
     
     .preview-content {
@@ -628,12 +892,23 @@
       </div>
       
       <div class="sidebar-divider"></div>
-      
+
+      <div class="sidebar-section">
+        <h2>Options</h2>
+        <label class="checkbox-option">
+          <input type="checkbox" id="includeLegacyFallbacks">
+          <span>Include legacy browser fallbacks</span>
+        </label>
+        <div class="option-hint">Adds @supports fallbacks for browsers without clamp()/min() support</div>
+      </div>
+
+      <div class="sidebar-divider"></div>
+
       <div class="output-info">
         <h2>Output Format</h2>
         <div class="info-item">
           <span class="info-icon">📐</span>
-          <span class="info-text"><strong>Fluid scaling</strong> with clamp() for responsive variables, plus media query fallbacks for older browsers</span>
+          <span class="info-text"><strong>Fluid scaling</strong> with clamp() for responsive variables</span>
         </div>
         <div class="info-item">
           <span class="info-icon">🔗</span>
@@ -648,7 +923,7 @@
           <span class="info-text"><strong>Responsive aliases</strong> with media queries for mode-specific var() references</span>
         </div>
       </div>
-      
+
       <div class="filename-section">
         <h2>Download Filename</h2>
         <label class="filename-option">
@@ -669,8 +944,45 @@
     <div class="preview-panel">
       <div class="preview-header">
         <h2>CSS Preview</h2>
+        <div class="preview-search-wrapper">
+          <svg class="preview-search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor">
+            <path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path>
+          </svg>
+          <input type="text" class="preview-search" id="preview-search" placeholder="Search in CSS..." disabled>
+        </div>
+        <div class="search-results-info" id="search-results-info"></div>
+        <div class="search-nav-buttons">
+          <button class="search-nav-btn" id="search-prev" title="Previous match" disabled>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor">
+              <path d="M213.66,165.66a8,8,0,0,1-11.32,0L128,91.31,53.66,165.66a8,8,0,0,1-11.32-11.32l80-80a8,8,0,0,1,11.32,0l80,80A8,8,0,0,1,213.66,165.66Z"></path>
+            </svg>
+          </button>
+          <button class="search-nav-btn" id="search-next" title="Next match" disabled>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor">
+              <path d="M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80a8,8,0,0,1,11.32-11.32L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z"></path>
+            </svg>
+          </button>
+        </div>
         <div class="preview-stats" id="preview-stats"></div>
       </div>
+
+      <!-- Viewport Candidates Panel - shown when viewport-related variables are detected -->
+      <div class="viewport-panel" id="viewport-panel" style="display: none;">
+        <div class="viewport-panel-header">
+          <span class="viewport-panel-icon">🖥️</span>
+          <h3>Viewport-Relative Variables Detected</h3>
+        </div>
+        <div class="viewport-panel-description">
+          The following variables contain "viewport" in their name or description.
+          Check the ones that should use <code>min(100vw, max)</code> instead of <code>clamp()</code> interpolation.
+        </div>
+        <div class="viewport-candidate-list" id="viewport-candidate-list"></div>
+        <div class="viewport-panel-actions">
+          <button class="btn-regenerate" id="btn-regenerate-viewport">Apply & Regenerate</button>
+          <button class="btn-select-all" id="btn-select-none">Deselect All</button>
+        </div>
+      </div>
+
       <div class="preview-content" id="preview-content">
         <div class="preview-placeholder">
           Click "Generate CSS" to preview the output
@@ -713,7 +1025,14 @@
     let collections = [];
     let generatedCSS = '';
     let currentTheme = 'light';
-    
+    // Track viewport candidates and user selections
+    let viewportCandidates = [];
+    let viewportSelections = {}; // { cssName: boolean }
+    // Search state
+    let searchMatches = [];
+    let currentMatchIndex = -1;
+    let lastSearchTerm = '';
+
     // ============================================
     // UI ELEMENTS
     // ============================================
@@ -729,7 +1048,19 @@
     const customFilenameWrapperEl = document.getElementById('custom-filename-wrapper');
     const customFilenameEl = document.getElementById('custom-filename');
     const toastEl = document.getElementById('toast');
-    
+
+    // Viewport panel elements
+    const viewportPanelEl = document.getElementById('viewport-panel');
+    const viewportCandidateListEl = document.getElementById('viewport-candidate-list');
+    const btnRegenerateViewport = document.getElementById('btn-regenerate-viewport');
+    const btnSelectNone = document.getElementById('btn-select-none');
+
+    // Search elements
+    const searchInputEl = document.getElementById('preview-search');
+    const searchResultsInfoEl = document.getElementById('search-results-info');
+    const btnSearchPrev = document.getElementById('search-prev');
+    const btnSearchNext = document.getElementById('search-next');
+
     const btnGenerate = document.getElementById('btn-generate');
     const btnCopy = document.getElementById('btn-copy');
     const btnDownload = document.getElementById('btn-download');
@@ -742,13 +1073,23 @@
     btnCopy.addEventListener('click', copyToClipboard);
     btnDownload.addEventListener('click', downloadCSS);
     themeToggle.addEventListener('click', toggleTheme);
-    
+
+    // Viewport panel handlers
+    btnRegenerateViewport.addEventListener('click', regenerateWithViewportSelections);
+    btnSelectNone.addEventListener('click', toggleAllViewportSelections);
+
     // Filename mode handlers
     document.querySelectorAll('input[name="filenameMode"]').forEach(radio => {
       radio.addEventListener('change', updateFilenamePreview);
     });
     customFilenameEl.addEventListener('input', updateFilenamePreview);
-    
+
+    // Search handlers
+    searchInputEl.addEventListener('input', debounce(performSearch, 150));
+    searchInputEl.addEventListener('keydown', handleSearchKeydown);
+    btnSearchPrev.addEventListener('click', goToPrevMatch);
+    btnSearchNext.addEventListener('click', goToNextMatch);
+
     // ============================================
     // THEME TOGGLE
     // ============================================
@@ -785,15 +1126,30 @@
     // ============================================
     // OPTIONS - Fixed settings
     // ============================================
-    function getOptions() {
-      return {
+    function getOptions(includeViewportOverrides = false) {
+      var legacyCheckbox = document.getElementById('includeLegacyFallbacks');
+      var options = {
         outputMode: 'fluid',
         aliasMode: 'preserved',
         darkModeOutput: 'both', // Outputs both prefers-color-scheme AND [data-theme="dark"]
         includeTimestamp: true,
         includeIds: false,
-        colorFormat: 'hex'
+        colorFormat: 'hex',
+        includeLegacyFallbacks: legacyCheckbox ? legacyCheckbox.checked : false
       };
+
+      // Include viewport selections if requested
+      if (includeViewportOverrides) {
+        var selectedVars = [];
+        for (var cssName in viewportSelections) {
+          if (viewportSelections[cssName]) {
+            selectedVars.push(cssName);
+          }
+        }
+        options.viewportRelativeOverrides = selectedVars;
+      }
+
+      return options;
     }
     
     // ============================================
@@ -911,25 +1267,34 @@
     // ============================================
     function renderPreview(css, stats) {
       generatedCSS = css;
-      
+
       // Syntax highlight - using spans with classes (not inline styles that leak into clipboard)
       const highlighted = css
         .replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="syntax-comment">$1</span>')
         .replace(/(--[a-z0-9-]+)/gi, '<span class="syntax-property">$1</span>')
         .replace(/(:root|@media|@supports)/g, '<span class="syntax-keyword">$1</span>')
         .replace(/(\d+(?:\.\d+)?(?:px|rem|vw|%)?)/g, '<span class="syntax-number">$1</span>')
-        .replace(/(clamp|calc|var)/g, '<span class="syntax-function">$1</span>')
+        .replace(/(clamp|calc|var|min)/g, '<span class="syntax-function">$1</span>')
         .replace(/(#[a-f0-9]{3,8})/gi, '<span class="syntax-color">$1</span>');
-      
+
       previewContentEl.innerHTML = `<div class="preview-code-wrapper"><pre class="preview-code">${highlighted}</pre></div>`;
       previewStatsEl.textContent = `${stats.collections} collections · ${stats.variables} variables · ${(css.length / 1024).toFixed(1)} KB`;
       footerStatsEl.textContent = `${stats.variables} variables exported`;
-      
+
       btnCopy.disabled = false;
       btnDownload.disabled = false;
       btnGenerate.disabled = false;
       btnGenerate.textContent = 'Generate CSS';
-      
+
+      // Enable search and reset search state
+      searchInputEl.disabled = false;
+      searchInputEl.placeholder = 'Search in CSS...';
+      clearSearchHighlights();
+      searchMatches = [];
+      currentMatchIndex = -1;
+      lastSearchTerm = '';
+      updateSearchUI();
+
       // Show errors if any
       if (stats.errors && stats.errors.length > 0) {
         errorsPanelEl.style.display = 'block';
@@ -937,8 +1302,259 @@
       } else {
         errorsPanelEl.style.display = 'none';
       }
+
+      // Show viewport candidates panel if any detected
+      if (stats.viewportCandidates && stats.viewportCandidates.length > 0) {
+        viewportCandidates = stats.viewportCandidates;
+        renderViewportCandidates();
+        viewportPanelEl.style.display = 'block';
+      } else {
+        viewportPanelEl.style.display = 'none';
+        viewportCandidates = [];
+      }
     }
-    
+
+    // ============================================
+    // VIEWPORT CANDIDATES PANEL
+    // ============================================
+    function renderViewportCandidates() {
+      let html = '';
+      for (const candidate of viewportCandidates) {
+        // Initialize selection state if not set (default to unchecked - user must opt-in)
+        if (viewportSelections[candidate.cssName] === undefined) {
+          viewportSelections[candidate.cssName] = false;
+        }
+        const checked = viewportSelections[candidate.cssName] ? 'checked' : '';
+        const reasonText = candidate.reason === 'name' ? 'Found in variable name' : 'Found in description';
+
+        html += `
+          <label class="viewport-candidate-item">
+            <input type="checkbox" ${checked} data-css-name="${escapeHtml(candidate.cssName)}" onchange="updateViewportSelection(this)">
+            <div class="viewport-candidate-info">
+              <div class="viewport-candidate-name">${escapeHtml(candidate.cssName)}</div>
+              <div class="viewport-candidate-reason">${reasonText}: "${escapeHtml(candidate.originalName)}"</div>
+            </div>
+          </label>
+        `;
+      }
+      viewportCandidateListEl.innerHTML = html;
+      updateSelectButtonText();
+    }
+
+    function updateViewportSelection(checkbox) {
+      const cssName = checkbox.dataset.cssName;
+      viewportSelections[cssName] = checkbox.checked;
+      updateSelectButtonText();
+    }
+
+    function toggleAllViewportSelections() {
+      // Check if any are selected
+      const anySelected = Object.values(viewportSelections).some(v => v);
+      // Toggle: if any selected, deselect all; otherwise select all
+      const newValue = !anySelected;
+
+      for (const candidate of viewportCandidates) {
+        viewportSelections[candidate.cssName] = newValue;
+      }
+      renderViewportCandidates();
+    }
+
+    function updateSelectButtonText() {
+      const anySelected = Object.values(viewportSelections).some(v => v);
+      btnSelectNone.textContent = anySelected ? 'Deselect All' : 'Select All';
+    }
+
+    function regenerateWithViewportSelections() {
+      btnRegenerateViewport.disabled = true;
+      btnRegenerateViewport.textContent = 'Regenerating...';
+      btnGenerate.disabled = true;
+
+      parent.postMessage({
+        pluginMessage: {
+          type: 'generate-css',
+          options: getOptions(true) // Include viewport overrides
+        }
+      }, '*');
+    }
+
+    // Make function available globally for inline onclick
+    window.updateViewportSelection = updateViewportSelection;
+
+    // ============================================
+    // SEARCH FUNCTIONALITY
+    // ============================================
+    function debounce(fn, delay) {
+      let timeout;
+      return function(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => fn.apply(this, args), delay);
+      };
+    }
+
+    function performSearch() {
+      const searchTerm = searchInputEl.value.trim().toLowerCase();
+
+      // Clear previous highlights
+      clearSearchHighlights();
+      searchMatches = [];
+      currentMatchIndex = -1;
+
+      if (!searchTerm || !generatedCSS) {
+        updateSearchUI();
+        return;
+      }
+
+      lastSearchTerm = searchTerm;
+
+      // Get the preview code element
+      const previewCodeEl = previewContentEl.querySelector('.preview-code');
+      if (!previewCodeEl) return;
+
+      // We need to search in the original CSS text, then highlight in the HTML
+      // Get all text nodes and their positions
+      const textContent = generatedCSS.toLowerCase();
+      let searchIndex = 0;
+      let matchPositions = [];
+
+      while ((searchIndex = textContent.indexOf(searchTerm, searchIndex)) !== -1) {
+        matchPositions.push({
+          start: searchIndex,
+          end: searchIndex + searchTerm.length
+        });
+        searchIndex += 1; // Move past to find overlapping matches
+      }
+
+      if (matchPositions.length === 0) {
+        updateSearchUI();
+        return;
+      }
+
+      // Re-render the preview with highlights
+      highlightMatches(matchPositions, searchTerm);
+
+      searchMatches = document.querySelectorAll('.search-highlight');
+      currentMatchIndex = 0;
+      highlightCurrentMatch();
+      updateSearchUI();
+      scrollToCurrentMatch();
+    }
+
+    function highlightMatches(matchPositions, searchTerm) {
+      // Re-render CSS with highlights
+      let highlighted = generatedCSS;
+
+      // Work backwards so positions don't shift
+      for (let i = matchPositions.length - 1; i >= 0; i--) {
+        const pos = matchPositions[i];
+        const before = highlighted.substring(0, pos.start);
+        const match = highlighted.substring(pos.start, pos.end);
+        const after = highlighted.substring(pos.end);
+        highlighted = before + `<mark class="search-highlight" data-match-index="${i}">${escapeHtml(match)}</mark>` + after;
+      }
+
+      // Apply syntax highlighting on top (but preserve our marks)
+      // We need to be careful not to break our marks
+      highlighted = highlighted
+        .replace(/(\/\*[\s\S]*?\*\/)/g, (match) => {
+          if (match.includes('<mark')) return match; // Skip if contains our marks
+          return '<span class="syntax-comment">' + match + '</span>';
+        })
+        .replace(/(--[a-z0-9-]+)/gi, (match) => {
+          if (match.includes('<mark') || match.includes('</mark')) return match;
+          return '<span class="syntax-property">' + match + '</span>';
+        })
+        .replace(/(:root|@media|@supports)/g, (match) => {
+          if (match.includes('<mark')) return match;
+          return '<span class="syntax-keyword">' + match + '</span>';
+        })
+        .replace(/(clamp|calc|var|min)/g, (match) => {
+          if (match.includes('<mark')) return match;
+          return '<span class="syntax-function">' + match + '</span>';
+        });
+
+      previewContentEl.innerHTML = `<div class="preview-code-wrapper"><pre class="preview-code">${highlighted}</pre></div>`;
+    }
+
+    function clearSearchHighlights() {
+      if (!generatedCSS) return;
+      // Re-render without highlights
+      const highlighted = generatedCSS
+        .replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="syntax-comment">$1</span>')
+        .replace(/(--[a-z0-9-]+)/gi, '<span class="syntax-property">$1</span>')
+        .replace(/(:root|@media|@supports)/g, '<span class="syntax-keyword">$1</span>')
+        .replace(/(\d+(?:\.\d+)?(?:px|rem|vw|%)?)/g, '<span class="syntax-number">$1</span>')
+        .replace(/(clamp|calc|var|min)/g, '<span class="syntax-function">$1</span>')
+        .replace(/(#[a-f0-9]{3,8})/gi, '<span class="syntax-color">$1</span>');
+      previewContentEl.innerHTML = `<div class="preview-code-wrapper"><pre class="preview-code">${highlighted}</pre></div>`;
+    }
+
+    function highlightCurrentMatch() {
+      // Remove current highlight from all
+      searchMatches.forEach(el => el.classList.remove('search-highlight-current'));
+      // Add to current
+      if (searchMatches[currentMatchIndex]) {
+        searchMatches[currentMatchIndex].classList.add('search-highlight-current');
+      }
+    }
+
+    function scrollToCurrentMatch() {
+      if (searchMatches[currentMatchIndex]) {
+        searchMatches[currentMatchIndex].scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
+        });
+      }
+    }
+
+    function goToNextMatch() {
+      if (searchMatches.length === 0) return;
+      currentMatchIndex = (currentMatchIndex + 1) % searchMatches.length;
+      highlightCurrentMatch();
+      scrollToCurrentMatch();
+      updateSearchUI();
+    }
+
+    function goToPrevMatch() {
+      if (searchMatches.length === 0) return;
+      currentMatchIndex = (currentMatchIndex - 1 + searchMatches.length) % searchMatches.length;
+      highlightCurrentMatch();
+      scrollToCurrentMatch();
+      updateSearchUI();
+    }
+
+    function handleSearchKeydown(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          goToPrevMatch();
+        } else {
+          goToNextMatch();
+        }
+      } else if (e.key === 'Escape') {
+        searchInputEl.value = '';
+        clearSearchHighlights();
+        searchMatches = [];
+        currentMatchIndex = -1;
+        updateSearchUI();
+      }
+    }
+
+    function updateSearchUI() {
+      const hasMatches = searchMatches.length > 0;
+      const hasSearchTerm = searchInputEl.value.trim().length > 0;
+
+      btnSearchPrev.disabled = !hasMatches;
+      btnSearchNext.disabled = !hasMatches;
+
+      if (hasSearchTerm && hasMatches) {
+        searchResultsInfoEl.textContent = `${currentMatchIndex + 1} of ${searchMatches.length}`;
+      } else if (hasSearchTerm) {
+        searchResultsInfoEl.textContent = 'No matches';
+      } else {
+        searchResultsInfoEl.textContent = '';
+      }
+    }
+
     // ============================================
     // MESSAGE LISTENER
     // ============================================
@@ -954,10 +1570,15 @@
         renderCollections();
       } else if (msg.type === 'css-generated') {
         renderPreview(msg.output.css, msg.output.stats);
+        // Reset regenerate button state
+        btnRegenerateViewport.disabled = false;
+        btnRegenerateViewport.textContent = 'Apply & Regenerate';
       } else if (msg.type === 'error') {
         previewContentEl.innerHTML = `<div class="preview-placeholder" style="color: var(--error-text);">Error: ${escapeHtml(msg.message)}</div>`;
         btnGenerate.disabled = false;
         btnGenerate.textContent = 'Generate CSS';
+        btnRegenerateViewport.disabled = false;
+        btnRegenerateViewport.textContent = 'Apply & Regenerate';
       }
     };
     
