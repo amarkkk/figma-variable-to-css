@@ -72,12 +72,21 @@ interface ExportOptions {
   // List of CSS variable names that should use min(100vw, max) instead of clamp()
   // If null/undefined, auto-detect based on "viewport" in name/description
   viewportRelativeOverrides?: string[];
+  // List of CSS variable names that should output as flex/grid proportions
+  // instead of clamp() - outputs unitless number + --fr variant
+  proportionOverrides?: string[];
 }
 
 interface ViewportCandidate {
   cssName: string;
   originalName: string;
   reason: 'name' | 'description';
+}
+
+interface ProportionCandidate {
+  cssName: string;
+  originalName: string;
+  columnCount: number; // Detected column count (e.g., 12 for "whole", 6 for "half")
 }
 
 interface CSSOutput {
@@ -90,6 +99,10 @@ interface CSSOutput {
     viewportRelativeVars: string[];
     // Candidates detected for viewport-relative treatment (for UI to show)
     viewportCandidates: ViewportCandidate[];
+    // Variables that were treated as proportions (output as flex/grid values)
+    proportionVars: string[];
+    // Candidates detected for proportion treatment (for UI to show)
+    proportionCandidates: ProportionCandidate[];
   };
 }
 
@@ -390,8 +403,12 @@ async function handleGenerateCSS(options: ExportOptions) {
   var viewportRelativeVars: string[] = [];
   var viewportCandidates: ViewportCandidate[] = [];
 
+  // Track proportion variables and candidates for reporting
+  var proportionVars: string[] = [];
+  var proportionCandidates: ProportionCandidate[] = [];
+
   // Generate CSS with deduplication
-  var css = generateCSSOutput(collectionGroups, collections, options, outputtedCSSNames, errors, viewportRelativeVars, viewportCandidates);
+  var css = generateCSSOutput(collectionGroups, collections, options, outputtedCSSNames, errors, viewportRelativeVars, viewportCandidates, proportionVars, proportionCandidates);
 
   var nonRemoteCount = 0;
   for (var i = 0; i < collections.length; i++) {
@@ -407,7 +424,9 @@ async function handleGenerateCSS(options: ExportOptions) {
         variables: allVariables.length,
         errors: errors,
         viewportRelativeVars: viewportRelativeVars,
-        viewportCandidates: viewportCandidates
+        viewportCandidates: viewportCandidates,
+        proportionVars: proportionVars,
+        proportionCandidates: proportionCandidates
       }
     }
   });
@@ -571,7 +590,9 @@ function generateCSSOutput(
   outputtedCSSNames: Set<string>,
   errors: string[],
   viewportRelativeVars: string[],
-  viewportCandidates: ViewportCandidate[]
+  viewportCandidates: ViewportCandidate[],
+  proportionVars: string[],
+  proportionCandidates: ProportionCandidate[]
 ): string {
   var lines: string[] = [];
   var timestamp = new Date().toISOString();
@@ -635,7 +656,7 @@ function generateCSSOutput(
     
     var sectionLines: string[];
     if (modeType === 'breakpoint') {
-      sectionLines = generateBreakpointCSS(collection, variables, options, outputtedCSSNames, errors, viewportRelativeVars, viewportCandidates);
+      sectionLines = generateBreakpointCSS(collection, variables, options, outputtedCSSNames, errors, viewportRelativeVars, viewportCandidates, proportionVars, proportionCandidates);
     } else if (modeType === 'theme') {
       sectionLines = generateThemeCSS(collection, variables, options, outputtedCSSNames, errors);
     } else {
@@ -682,7 +703,9 @@ function generateBreakpointCSS(
   outputtedCSSNames: Set<string>,
   errors: string[],
   viewportRelativeVars: string[],
-  viewportCandidates: ViewportCandidate[]
+  viewportCandidates: ViewportCandidate[],
+  proportionVars: string[],
+  proportionCandidates: ProportionCandidate[]
 ): string[] {
   var lines: string[] = [];
 
@@ -700,7 +723,7 @@ function generateBreakpointCSS(
 
   var resultLines: string[];
   if (options.outputMode === 'fluid' && sortedModes.length >= 2) {
-    resultLines = generateFluidCSS(sortedModes, variables, options, outputtedCSSNames, errors, viewportRelativeVars, viewportCandidates);
+    resultLines = generateFluidCSS(sortedModes, variables, options, outputtedCSSNames, errors, viewportRelativeVars, viewportCandidates, proportionVars, proportionCandidates);
   } else {
     resultLines = generateSteppedCSS(sortedModes, variables, options, outputtedCSSNames, errors);
   }
@@ -719,7 +742,9 @@ function generateFluidCSS(
   outputtedCSSNames: Set<string>,
   errors: string[],
   viewportRelativeVars: string[],
-  viewportCandidates: ViewportCandidate[]
+  viewportCandidates: ViewportCandidate[],
+  proportionVars: string[],
+  proportionCandidates: ProportionCandidate[]
 ): string[] {
   var lines: string[] = [];
 
@@ -758,6 +783,16 @@ function generateFluidCSS(
             reason: reason
           });
         }
+
+        // Check if this is a proportion candidate (for UI display)
+        var columnCount = getProportionColumnCount(variable);
+        if (columnCount !== null) {
+          proportionCandidates.push({
+            cssName: variable.cssName,
+            originalName: variable.name,
+            columnCount: columnCount
+          });
+        }
       }
     }
   }
@@ -777,12 +812,26 @@ function generateFluidCSS(
 
       // Check if this variable has different numeric values across modes
       if (hasModeVariance(variable, modes, options) && variable.resolvedType === 'FLOAT' && !value.isAlias) {
-        var fluidResult = generateFluidValue(modes, variable, options, viewportRelativeVars);
-        // Add comment for viewport-relative variables
-        if (fluidResult.isViewportRelative) {
-          lines.push('  /* Viewport-relative: uses min() instead of clamp() */');
+        // Check if this is a proportion variable
+        if (shouldUseProportion(variable, options)) {
+          var columnCount = getProportionColumnCount(variable);
+          if (columnCount !== null) {
+            proportionVars.push(variable.cssName);
+            lines.push('  /* Proportion: ' + columnCount + '/12 columns (flex/grid-ready) */');
+            lines.push('  ' + variable.cssName + ': ' + columnCount + ';');
+            lines.push('  ' + variable.cssName + '--fr: ' + columnCount + 'fr;');
+          } else {
+            // Fallback if column count detection failed but user selected it
+            lines.push('  ' + variable.cssName + ': ' + cssValue + ';');
+          }
+        } else {
+          var fluidResult = generateFluidValue(modes, variable, options, viewportRelativeVars);
+          // Add comment for viewport-relative variables
+          if (fluidResult.isViewportRelative) {
+            lines.push('  /* Viewport-relative: uses min() instead of clamp() */');
+          }
+          lines.push('  ' + variable.cssName + ': ' + fluidResult.value + ';');
         }
-        lines.push('  ' + variable.cssName + ': ' + fluidResult.value + ';');
       } else {
         lines.push('  ' + variable.cssName + ': ' + cssValue + ';');
       }
@@ -904,6 +953,47 @@ function shouldUseViewportRelative(variable: VariableInfo, options: ExportOption
     return options.viewportRelativeOverrides.indexOf(variable.cssName) !== -1;
   }
   // Otherwise, no automatic detection - user must explicitly select
+  return false;
+}
+
+// Proportion name to column count mapping (based on 12-column grid)
+var PROPORTION_COLUMNS: Record<string, number> = {
+  'whole': 12,
+  'three-quarters': 9,
+  'three-quarter': 9,
+  'two-thirds': 8,
+  'two-third': 8,
+  'half': 6,
+  'third': 4,
+  'quarter': 3
+};
+
+// Check if a variable is a candidate for proportion treatment
+// Returns the column count if it's a proportion, null otherwise
+function getProportionColumnCount(variable: VariableInfo): number | null {
+  var nameLower = variable.name.toLowerCase();
+
+  // Must contain "proportion" or "proportions" in the name
+  if (nameLower.indexOf('proportion') === -1) return null;
+
+  // Skip viewport-relative proportions (handled separately)
+  if (nameLower.indexOf('viewport') !== -1) return null;
+
+  // Check for known proportion names
+  for (var propName in PROPORTION_COLUMNS) {
+    if (nameLower.indexOf(propName) !== -1) {
+      return PROPORTION_COLUMNS[propName];
+    }
+  }
+
+  return null;
+}
+
+// Check if a variable should be treated as a proportion based on options
+function shouldUseProportion(variable: VariableInfo, options: ExportOptions): boolean {
+  if (options.proportionOverrides && options.proportionOverrides.length > 0) {
+    return options.proportionOverrides.indexOf(variable.cssName) !== -1;
+  }
   return false;
 }
 

@@ -4,6 +4,113 @@ All notable changes to Variable to CSS are documented in this file.
 
 ---
 
+## v1.5 — 2026-02-02
+
+### Summary
+
+This release adds **grid proportion variable handling**, allowing proportion tokens (whole, half, third, quarter, etc.) to output as flex/grid-ready values instead of pixel-based `clamp()` calculations.
+
+### New Features
+
+#### 1. Grid Proportion Variable Detection
+
+Variables with "proportion" in their name (excluding viewport) are detected as candidates for proportion output. Instead of `clamp()` pixel interpolation, these output as:
+
+- **Unitless number** for `flex` usage: `--dimension-grid-proportions-half: 6;`
+- **`fr` variant** for CSS Grid: `--dimension-grid-proportions-half--fr: 6fr;`
+
+**Problem solved:** Grid proportions like "half" or "third" were calculated as pixel values that only matched exactly at hard breakpoints. Between breakpoints, they interpolated to arbitrary pixel values that didn't represent the design intent.
+
+**Before (problematic):**
+```css
+--dimension-grid-proportions-half: clamp(156px, calc(39.6969vw - 14.9091px), 680px);
+```
+
+**After (when enabled):**
+```css
+/* Proportion: 6/12 columns (flex/grid-ready) */
+--dimension-grid-proportions-half: 6;
+--dimension-grid-proportions-half--fr: 6fr;
+```
+
+#### 2. Interactive Proportion Panel
+
+After CSS generation, a blue info-styled panel appears showing detected proportion candidates. Users opt-in via checkboxes, then click "Apply & Regenerate".
+
+- Blue info styling (distinct from orange viewport panel)
+- Shows detected column count (e.g., "6/12 columns → flex: 6; / 6fr")
+- "Select All / Deselect All" toggle
+- Works alongside viewport panel (both can be active)
+
+#### 3. Proportion Name Detection
+
+Automatically detects proportion names based on 12-column grid:
+
+| Name | Columns |
+|------|---------|
+| whole | 12 |
+| three-quarters | 9 |
+| two-thirds | 8 |
+| half | 6 |
+| third | 4 |
+| quarter | 3 |
+
+### Usage in CSS
+
+**Flexbox:**
+```scss
+.sidebar { flex: var(--dimension-grid-proportions-third); }  /* 4 */
+.main    { flex: var(--dimension-grid-proportions-two-thirds); }  /* 8 */
+```
+
+**CSS Grid:**
+```scss
+.layout {
+  grid-template-columns:
+    var(--dimension-grid-proportions-third--fr)      /* 4fr */
+    var(--dimension-grid-proportions-two-thirds--fr); /* 8fr */
+}
+```
+
+### Technical Changes
+
+#### code.ts
+
+**Added interfaces:**
+- `ProportionCandidate` — Tracks detected proportion variable candidates with column count
+
+**Added to ExportOptions:**
+- `proportionOverrides` — Array of CSS names selected for proportion output
+
+**Added to stats output:**
+- `proportionVars` — Variables treated as proportions
+- `proportionCandidates` — Detected candidates for UI
+
+**Added functions:**
+- `getProportionColumnCount()` — Detects proportion name and returns column count
+- `shouldUseProportion()` — Checks if variable is in user's selection
+
+**Added constant:**
+- `PROPORTION_COLUMNS` — Maps proportion names to column counts
+
+#### ui.html
+
+**Added state:**
+- `proportionCandidates` — Array of detected candidates
+- `proportionSelections` — Object tracking checkbox states
+
+**Added UI elements:**
+- Proportion candidates panel (blue info style)
+- Checkboxes and regenerate button
+
+**Added functions:**
+- `renderProportionCandidates()` — Renders the panel
+- `updateProportionSelection()` — Handles checkbox changes
+- `toggleAllProportionSelections()` — Select/deselect all
+- `regenerateWithProportionSelections()` — Triggers regeneration
+
+---
+
 ## v1.4 — 2026-02-01
 
 ### Summary

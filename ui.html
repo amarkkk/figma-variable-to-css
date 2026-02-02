@@ -393,6 +393,123 @@
       background: var(--bg-hover);
     }
 
+    /* Proportion Candidates Panel - Info Style (blue) */
+    .proportion-panel {
+      padding: 16px;
+      background: rgba(24, 160, 251, 0.1);
+      border: 1px solid rgba(24, 160, 251, 0.3);
+      border-radius: 6px;
+      margin: 12px;
+    }
+
+    [data-theme="dark"] .proportion-panel {
+      background: rgba(24, 160, 251, 0.15);
+      border-color: rgba(24, 160, 251, 0.4);
+    }
+
+    .proportion-panel-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .proportion-panel-icon {
+      font-size: 16px;
+    }
+
+    .proportion-panel h3 {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent-primary);
+      margin: 0;
+    }
+
+    .proportion-panel-description {
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+
+    .proportion-panel-description code {
+      font-family: 'SF Mono', 'Monaco', monospace;
+      font-size: 10px;
+      background: rgba(0,0,0,0.1);
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+
+    .proportion-candidate-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .proportion-candidate-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg-primary);
+      padding: 8px 10px;
+      border-radius: 4px;
+      border: 1px solid var(--border-medium);
+    }
+
+    .proportion-candidate-item input[type="checkbox"] {
+      accent-color: var(--accent-primary);
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+    }
+
+    .proportion-candidate-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .proportion-candidate-name {
+      font-family: 'SF Mono', 'Monaco', monospace;
+      font-size: 10px;
+      color: var(--text-primary);
+      word-break: break-all;
+    }
+
+    .proportion-candidate-columns {
+      font-size: 9px;
+      color: var(--text-tertiary);
+      margin-top: 2px;
+    }
+
+    .proportion-panel-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-regenerate-proportion {
+      background: var(--accent-primary);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    .btn-regenerate-proportion:hover {
+      opacity: 0.9;
+    }
+
+    .btn-regenerate-proportion:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
     /* File Name Options */
     .filename-section {
       padding: 16px;
@@ -983,6 +1100,23 @@
         </div>
       </div>
 
+      <!-- Proportion Candidates Panel - shown when grid proportion variables are detected -->
+      <div class="proportion-panel" id="proportion-panel" style="display: none;">
+        <div class="proportion-panel-header">
+          <span class="proportion-panel-icon">📐</span>
+          <h3>Grid Proportion Variables Detected</h3>
+        </div>
+        <div class="proportion-panel-description">
+          The following variables appear to be grid proportions (whole, half, third, etc.).
+          Check the ones that should output as <code>flex</code>/<code>fr</code> values instead of pixel-based <code>clamp()</code>.
+        </div>
+        <div class="proportion-candidate-list" id="proportion-candidate-list"></div>
+        <div class="proportion-panel-actions">
+          <button class="btn-regenerate-proportion" id="btn-regenerate-proportion">Apply & Regenerate</button>
+          <button class="btn-select-all" id="btn-select-none-proportion">Deselect All</button>
+        </div>
+      </div>
+
       <div class="preview-content" id="preview-content">
         <div class="preview-placeholder">
           Click "Generate CSS" to preview the output
@@ -1028,6 +1162,9 @@
     // Track viewport candidates and user selections
     let viewportCandidates = [];
     let viewportSelections = {}; // { cssName: boolean }
+    // Track proportion candidates and user selections
+    let proportionCandidates = [];
+    let proportionSelections = {}; // { cssName: boolean }
     // Search state
     let searchMatches = [];
     let currentMatchIndex = -1;
@@ -1055,6 +1192,12 @@
     const btnRegenerateViewport = document.getElementById('btn-regenerate-viewport');
     const btnSelectNone = document.getElementById('btn-select-none');
 
+    // Proportion panel elements
+    const proportionPanelEl = document.getElementById('proportion-panel');
+    const proportionCandidateListEl = document.getElementById('proportion-candidate-list');
+    const btnRegenerateProportion = document.getElementById('btn-regenerate-proportion');
+    const btnSelectNoneProportion = document.getElementById('btn-select-none-proportion');
+
     // Search elements
     const searchInputEl = document.getElementById('preview-search');
     const searchResultsInfoEl = document.getElementById('search-results-info');
@@ -1077,6 +1220,10 @@
     // Viewport panel handlers
     btnRegenerateViewport.addEventListener('click', regenerateWithViewportSelections);
     btnSelectNone.addEventListener('click', toggleAllViewportSelections);
+
+    // Proportion panel handlers
+    btnRegenerateProportion.addEventListener('click', regenerateWithProportionSelections);
+    btnSelectNoneProportion.addEventListener('click', toggleAllProportionSelections);
 
     // Filename mode handlers
     document.querySelectorAll('input[name="filenameMode"]').forEach(radio => {
@@ -1126,7 +1273,7 @@
     // ============================================
     // OPTIONS - Fixed settings
     // ============================================
-    function getOptions(includeViewportOverrides = false) {
+    function getOptions(includeOverrides = false) {
       var legacyCheckbox = document.getElementById('includeLegacyFallbacks');
       var options = {
         outputMode: 'fluid',
@@ -1139,14 +1286,23 @@
       };
 
       // Include viewport selections if requested
-      if (includeViewportOverrides) {
-        var selectedVars = [];
+      if (includeOverrides) {
+        var selectedViewportVars = [];
         for (var cssName in viewportSelections) {
           if (viewportSelections[cssName]) {
-            selectedVars.push(cssName);
+            selectedViewportVars.push(cssName);
           }
         }
-        options.viewportRelativeOverrides = selectedVars;
+        options.viewportRelativeOverrides = selectedViewportVars;
+
+        // Include proportion selections
+        var selectedProportionVars = [];
+        for (var cssName in proportionSelections) {
+          if (proportionSelections[cssName]) {
+            selectedProportionVars.push(cssName);
+          }
+        }
+        options.proportionOverrides = selectedProportionVars;
       }
 
       return options;
@@ -1312,6 +1468,16 @@
         viewportPanelEl.style.display = 'none';
         viewportCandidates = [];
       }
+
+      // Show proportion candidates panel if any detected
+      if (stats.proportionCandidates && stats.proportionCandidates.length > 0) {
+        proportionCandidates = stats.proportionCandidates;
+        renderProportionCandidates();
+        proportionPanelEl.style.display = 'block';
+      } else {
+        proportionPanelEl.style.display = 'none';
+        proportionCandidates = [];
+      }
     }
 
     // ============================================
@@ -1379,6 +1545,71 @@
 
     // Make function available globally for inline onclick
     window.updateViewportSelection = updateViewportSelection;
+
+    // ============================================
+    // PROPORTION CANDIDATES PANEL
+    // ============================================
+    function renderProportionCandidates() {
+      let html = '';
+      for (const candidate of proportionCandidates) {
+        // Initialize selection state if not set (default to unchecked - user must opt-in)
+        if (proportionSelections[candidate.cssName] === undefined) {
+          proportionSelections[candidate.cssName] = false;
+        }
+        const checked = proportionSelections[candidate.cssName] ? 'checked' : '';
+
+        html += `
+          <label class="proportion-candidate-item">
+            <input type="checkbox" ${checked} data-css-name="${escapeHtml(candidate.cssName)}" onchange="updateProportionSelection(this)">
+            <div class="proportion-candidate-info">
+              <div class="proportion-candidate-name">${escapeHtml(candidate.cssName)}</div>
+              <div class="proportion-candidate-columns">${candidate.columnCount}/12 columns → flex: ${candidate.columnCount}; / ${candidate.columnCount}fr</div>
+            </div>
+          </label>
+        `;
+      }
+      proportionCandidateListEl.innerHTML = html;
+      updateProportionSelectButtonText();
+    }
+
+    function updateProportionSelection(checkbox) {
+      const cssName = checkbox.dataset.cssName;
+      proportionSelections[cssName] = checkbox.checked;
+      updateProportionSelectButtonText();
+    }
+
+    function toggleAllProportionSelections() {
+      // Check if any are selected
+      const anySelected = Object.values(proportionSelections).some(v => v);
+      // Toggle: if any selected, deselect all; otherwise select all
+      const newValue = !anySelected;
+
+      for (const candidate of proportionCandidates) {
+        proportionSelections[candidate.cssName] = newValue;
+      }
+      renderProportionCandidates();
+    }
+
+    function updateProportionSelectButtonText() {
+      const anySelected = Object.values(proportionSelections).some(v => v);
+      btnSelectNoneProportion.textContent = anySelected ? 'Deselect All' : 'Select All';
+    }
+
+    function regenerateWithProportionSelections() {
+      btnRegenerateProportion.disabled = true;
+      btnRegenerateProportion.textContent = 'Regenerating...';
+      btnGenerate.disabled = true;
+
+      parent.postMessage({
+        pluginMessage: {
+          type: 'generate-css',
+          options: getOptions(true) // Include all overrides
+        }
+      }, '*');
+    }
+
+    // Make function available globally for inline onclick
+    window.updateProportionSelection = updateProportionSelection;
 
     // ============================================
     // SEARCH FUNCTIONALITY
@@ -1570,15 +1801,19 @@
         renderCollections();
       } else if (msg.type === 'css-generated') {
         renderPreview(msg.output.css, msg.output.stats);
-        // Reset regenerate button state
+        // Reset regenerate button states
         btnRegenerateViewport.disabled = false;
         btnRegenerateViewport.textContent = 'Apply & Regenerate';
+        btnRegenerateProportion.disabled = false;
+        btnRegenerateProportion.textContent = 'Apply & Regenerate';
       } else if (msg.type === 'error') {
         previewContentEl.innerHTML = `<div class="preview-placeholder" style="color: var(--error-text);">Error: ${escapeHtml(msg.message)}</div>`;
         btnGenerate.disabled = false;
         btnGenerate.textContent = 'Generate CSS';
         btnRegenerateViewport.disabled = false;
         btnRegenerateViewport.textContent = 'Apply & Regenerate';
+        btnRegenerateProportion.disabled = false;
+        btnRegenerateProportion.textContent = 'Apply & Regenerate';
       }
     };
     

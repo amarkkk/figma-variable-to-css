@@ -371,6 +371,55 @@ Some variables should scale with the viewport rather than interpolate between fi
 
 **User Control:** The plugin shows detected candidates in a warning panel. Users opt-in via checkboxes before regenerating.
 
+### Grid Proportion Variables
+
+Grid proportions (whole, half, third, quarter, etc.) represent column spans in a 12-column grid. In Figma, these are calculated as pixel values (e.g., "half" = 6 columns × column width + 5 gutters). However, the **design intent** is proportional, not pixel-based.
+
+**Problem:** Pixel-based `clamp()` output doesn't represent the true intent:
+```css
+/* Pixel interpolation - only exact at breakpoints */
+--dimension-grid-proportions-half: clamp(156px, calc(...), 680px);
+```
+
+**Solution:** Output as flex/grid-ready values:
+```css
+/* Proportion: 6/12 columns (flex/grid-ready) */
+--dimension-grid-proportions-half: 6;
+--dimension-grid-proportions-half--fr: 6fr;
+```
+
+**Detection:** Variables with "proportion" in their name (excluding "viewport") are flagged as candidates.
+
+**Column Mapping:**
+| Proportion Name | Columns |
+|-----------------|---------|
+| whole | 12 |
+| three-quarters | 9 |
+| two-thirds | 8 |
+| half | 6 |
+| third | 4 |
+| quarter | 3 |
+
+**Usage in CSS:**
+```scss
+/* Flexbox - proportions fill available space */
+.sidebar { flex: var(--dimension-grid-proportions-third); }  /* 4 */
+.main    { flex: var(--dimension-grid-proportions-two-thirds); }  /* 8 */
+
+/* CSS Grid - fr units for explicit grid tracks */
+.layout {
+  grid-template-columns:
+    var(--dimension-grid-proportions-third--fr)      /* 4fr */
+    var(--dimension-grid-proportions-two-thirds--fr); /* 8fr */
+}
+```
+
+**Benefits:**
+- Gap/gutter handling is separate (container's `gap` property)
+- Proportions work at any viewport size
+- Matches flexbox/grid mental model
+- Smaller CSS output (no complex `clamp()` calculations)
+
 ### Breakpoint Mode Detection
 
 The plugin expects Figma variable modes named:

@@ -45,6 +45,7 @@ If your token structure differs, the plugin will still work but may not detect l
 - **Theme Support** — Handles light/dark modes with `@media (prefers-color-scheme)` and `[data-theme]` selectors
 - **Fluid Scaling** — Generates CSS `clamp()` for smooth interpolation between breakpoints (Desktop 1680px → Mobile 480px)
 - **Viewport-Relative Variables** — Variables with "viewport" in name/description can use `min(100vw, max)` instead of `clamp()` to avoid unwanted clamping
+- **Grid Proportion Variables** — Proportion tokens (half, third, quarter) can output as flex/grid-ready values (unitless + `fr` variant) instead of pixel `clamp()`
 - **Multi-Mode Alias Support** — Aliases that change `var()` references per breakpoint get proper media queries
 - **Preserved Alias Chains** — Outputs `var()` references to maintain design system hierarchy in CSS
 - **Optional Legacy Fallbacks** — `@supports not` fallback blocks for older browsers (off by default to reduce file size)
