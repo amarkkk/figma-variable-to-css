@@ -4,6 +4,40 @@ All notable changes to Variable to CSS are documented in this file.
 
 ---
 
+## v1.5.1 — 2026-02-02
+
+### Bug Fixes
+
+**Fixed proportion-to-column mapping returning wrong values**
+
+The v1.5 proportion detection was returning incorrect column counts due to substring matching order. For example, `three-quarters` was matching `quarter` (returning 3) before `three-quarters` (which should return 9).
+
+**Before (broken):**
+```css
+/* Proportion: 3/12 columns (flex/grid-ready) */
+--dimension-grid-proportions-three-quarters: 3;
+/* Proportion: 4/12 columns (flex/grid-ready) */
+--dimension-grid-proportions-two-thirds: 4;
+```
+
+**After (fixed):**
+```css
+/* Proportion: 9/12 columns (flex/grid-ready) */
+--dimension-grid-proportions-three-quarters: 9;
+/* Proportion: 8/12 columns (flex/grid-ready) */
+--dimension-grid-proportions-two-thirds: 8;
+```
+
+**Technical change:** Converted `PROPORTION_COLUMNS` from an object to an array ordered by name length (longest first), ensuring compound names like `three-quarters` are checked before their substrings like `quarter`.
+
+### UX Improvement
+
+**Detected variables now checked by default**
+
+Both viewport-relative and proportion candidate checkboxes are now checked by default when detected. Previously, users had to manually check each one. The "Deselect All" button allows users to opt-out if needed.
+
+---
+
 ## v1.5 — 2026-02-02
 
 ### Summary

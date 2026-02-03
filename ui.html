@@ -1486,9 +1486,9 @@
     function renderViewportCandidates() {
       let html = '';
       for (const candidate of viewportCandidates) {
-        // Initialize selection state if not set (default to unchecked - user must opt-in)
+        // Initialize selection state if not set (default to checked - detected variables are selected by default)
         if (viewportSelections[candidate.cssName] === undefined) {
-          viewportSelections[candidate.cssName] = false;
+          viewportSelections[candidate.cssName] = true;
         }
         const checked = viewportSelections[candidate.cssName] ? 'checked' : '';
         const reasonText = candidate.reason === 'name' ? 'Found in variable name' : 'Found in description';
@@ -1552,9 +1552,9 @@
     function renderProportionCandidates() {
       let html = '';
       for (const candidate of proportionCandidates) {
-        // Initialize selection state if not set (default to unchecked - user must opt-in)
+        // Initialize selection state if not set (default to checked - detected variables are selected by default)
         if (proportionSelections[candidate.cssName] === undefined) {
-          proportionSelections[candidate.cssName] = false;
+          proportionSelections[candidate.cssName] = true;
         }
         const checked = proportionSelections[candidate.cssName] ? 'checked' : '';
 

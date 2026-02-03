@@ -957,16 +957,18 @@ function shouldUseViewportRelative(variable: VariableInfo, options: ExportOption
 }
 
 // Proportion name to column count mapping (based on 12-column grid)
-var PROPORTION_COLUMNS: Record<string, number> = {
-  'whole': 12,
-  'three-quarters': 9,
-  'three-quarter': 9,
-  'two-thirds': 8,
-  'two-third': 8,
-  'half': 6,
-  'third': 4,
-  'quarter': 3
-};
+// IMPORTANT: Array is ordered from longest to shortest names to ensure
+// "three-quarters" matches before "quarter", "two-thirds" before "third", etc.
+// Each entry has multiple patterns to handle different naming conventions
+// (hyphens, spaces, or concatenated)
+var PROPORTION_COLUMNS: Array<{ patterns: string[]; columns: number }> = [
+  { patterns: ['three-quarters', 'three quarters', 'threequarters', 'three-quarter', 'three quarter', 'threequarter'], columns: 9 },
+  { patterns: ['two-thirds', 'two thirds', 'twothirds', 'two-third', 'two third', 'twothird'], columns: 8 },
+  { patterns: ['quarter'], columns: 3 },
+  { patterns: ['whole'], columns: 12 },
+  { patterns: ['third'], columns: 4 },
+  { patterns: ['half'], columns: 6 }
+];
 
 // Check if a variable is a candidate for proportion treatment
 // Returns the column count if it's a proportion, null otherwise
@@ -979,10 +981,14 @@ function getProportionColumnCount(variable: VariableInfo): number | null {
   // Skip viewport-relative proportions (handled separately)
   if (nameLower.indexOf('viewport') !== -1) return null;
 
-  // Check for known proportion names
-  for (var propName in PROPORTION_COLUMNS) {
-    if (nameLower.indexOf(propName) !== -1) {
-      return PROPORTION_COLUMNS[propName];
+  // Check for known proportion names (array is ordered longest-first to avoid
+  // substring conflicts like "quarter" matching before "three-quarters")
+  for (var i = 0; i < PROPORTION_COLUMNS.length; i++) {
+    var prop = PROPORTION_COLUMNS[i];
+    for (var j = 0; j < prop.patterns.length; j++) {
+      if (nameLower.indexOf(prop.patterns[j]) !== -1) {
+        return prop.columns;
+      }
     }
   }
 
