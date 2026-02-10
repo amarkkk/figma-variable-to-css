@@ -4,6 +4,245 @@ All notable changes to Variable to CSS are documented in this file.
 
 ---
 
+## v1.8 — 2026-02-10
+
+### Summary
+
+UX/UI polish release addressing feedback on v1.7. Fixes a critical bug in text style export, improves the detection panel UX, and adds various quality-of-life improvements.
+
+### Bug Fixes
+
+#### Text style var() fallback removed for responsive variables
+
+Text style export was outputting `var(--typo-type-size-fixed-3, 20px)` with static fallback values. For responsive variables that change per viewport via `clamp()` or `@media`, the fallback `20px` is incorrect. Now outputs `var(--typo-type-size-fixed-3)` without a fallback — if the variable is undefined, the browser's inherited/initial value is safer than a wrong static value.
+
+#### Decimal precision capped at 2 decimal places
+
+All CSS numeric output is now capped at 2 decimal places via `round(value, 2)`. Previously, values like `32.6446624375525px` could appear in the output. Now outputs `32.64px`.
+
+### UX Improvements
+
+#### Unified detection panel (merged 3 panels into 1)
+
+The three separate edge-case detection panels (viewport-relative in orange, grid proportions in blue, non-linear scaling in purple) have been merged into a single **"Edge-Case Detection"** accordion panel with collapsible subsections. Each section retains its color accent. A badge shows total detected candidates, and a summary footer shows the current selection state.
+
+The three separate "Apply & Regenerate" buttons are removed. Instead, the **Generate CSS** button itself now serves as the regenerate action — it always includes detection selections when generating. The footer summary prompts users to "click Generate CSS to apply."
+
+#### Non-linear deviation mini-graph
+
+Each non-linear candidate now shows a small bar chart illustrating how the Laptop and Tablet values deviate from the expected linear interpolation. Purple bars show actual values, gray dashed bars show expected linear positions.
+
+#### CSS transitions for option toggles
+
+Toggling options (output mode Fluid↔Fixed, text styles checkbox, legacy fallbacks) now uses smooth CSS transitions instead of abrupt `display:none` swaps. A `.option-collapsible` class with `max-height` + `opacity` transitions provides smooth expand/collapse animations.
+
+#### Two-column options summary grid
+
+The sidebar Options section now includes a compact two-column summary grid showing the current Output Mode (Fluid/Fixed) and Text Styles status (Off/SCSS/CSS Class/CSS Vars) at a glance.
+
+#### Enhanced scrollbar visibility
+
+Scrollbars are now wider (12px), with more prominent thumb styling and visible up/down stepper arrow buttons via `::-webkit-scrollbar-button`. The preview panel has a distinct scrollbar style for better visibility while reading CSS output.
+
+#### Search Enter-to-jump improvement
+
+Pressing Enter in the search field now immediately triggers the search if the debounce timer hasn't fired yet, then jumps to the next match. Shift+Enter goes to the previous match. Smooth scroll animation centers the current match in view.
+
+### Technical Changes
+
+#### code.ts
+- `formatCSSValue()` — All FLOAT values now rounded to 2 decimal places via `round()`
+- `formatRawTextProperty()` — fontSize, lineHeight, letterSpacing rounded to 2 decimals
+- `resolveTextStyleProperty()` — Removed fallback value from `var()` output; now outputs `var(--name)` instead of `var(--name, fallback)`
+
+#### ui.html
+- Replaced 3 separate panel HTML/CSS/JS with unified `.detection-panel` with `.detection-section` accordion subsections
+- Added `.option-collapsible` CSS class with `max-height`/`opacity` transitions
+- Added `.options-grid` two-column CSS layout for sidebar summary
+- Added `.deviation-graph` / `.deviation-bar` CSS for non-linear mini-graphs
+- Enhanced `::-webkit-scrollbar` styles with stepper buttons
+- `generateCSS()` now always passes `getOptions(true)` (includes overrides)
+- Added `updateSummaryGrid()`, `updateDetectionSummary()`, `toggleDetectionSection()` JS functions
+- Removed separate `regenerateWithViewportSelections()`, `regenerateWithProportionSelections()`, `regenerateWithNonLinearSelections()` functions
+
+---
+
+## v1.7 — 2026-02-10
+
+### Summary
+
+This release adds three major features: a **Fixed-value export mode** (no clamp interpolation), **Piecewise linear clamp** for non-linear scaling variables, and **Composite text style export** from Figma Text Styles.
+
+### New Features
+
+#### FEAT-02: Fixed-Value Export Mode
+
+Radio toggle in the sidebar: **Fluid** (clamp — default) or **Fixed** (raw values per breakpoint).
+
+- Fixed mode outputs Figma values as-is with `@media` queries at each breakpoint
+- No `clamp()` interpolation — one-to-one mapping from Figma values to CSS
+- Viewport-relative, proportion, and non-linear detection panels are hidden in Fixed mode
+- Legacy fallback option is hidden in Fixed mode (not applicable)
+
+#### FEAT-04: Composite Text Style Export
+
+Checkbox "Include text styles in output" with a format dropdown:
+
+- **SCSS Mixins** (default): `@mixin heading-h1 { font-family: var(...); font-size: var(...); ... }`
+- **CSS Classes**: `.heading-h1 { font-family: var(...); ... }`
+- **CSS Custom Properties**: `:root { --heading-h1-family: var(...); ... }`
+
+Text style properties bound to Figma Variables are resolved to `var()` references (without fallback values — see v1.8 fix). Unbound properties get raw values. Font-weight is mapped from Figma font style names (Light → 300, Bold → 700, etc.).
+
+#### FEAT-05: Piecewise Linear Clamp (Non-Linear Scaling)
+
+Auto-detects variables where intermediate breakpoint values (Laptop, Tablet) deviate >5% from a straight line between Desktop and Mobile. Detected variables appear in a purple panel (collapsible), checked by default (opt-out pattern).
+
+When enabled, outputs 3 piecewise `clamp()` segments instead of one:
+- `:root` — Desktop→Laptop clamp
+- `@media (max-width: 1679px)` — Laptop→Tablet clamp
+- `@media (max-width: 1365px)` — Tablet→Mobile clamp
+
+This accurately follows non-linear curves like t³ scaling that the designer set in Figma.
+
+### Technical Changes
+
+#### code.ts
+
+**Added to ExportOptions:**
+- `nonLinearOverrides` — Array of CSS names selected for piecewise clamp
+- `includeTextStyles` — Boolean to include text styles
+- `textStyleFormat` — Format choice: `scss-mixin`, `css-class`, `css-vars`
+- `outputMode` changed from `'fluid' | 'stepped'` to `'fluid' | 'fixed'`
+
+**Added interfaces:**
+- `NonLinearCandidate` — Tracks deviation at Laptop/Tablet breakpoints
+
+**Added functions:**
+- `getNonLinearDeviation()` — Compares actual vs expected linear intermediate values
+- `shouldUsePiecewiseClamp()` — Checks user selection for piecewise output
+- `generatePiecewiseClampValue()` — Computes clamp() for one adjacent mode pair
+- `handleScanTextStyles()` — Scans Figma text styles, sends count to UI
+- `generateTextStyleCSS()` — Generates composite text style output
+- `generateTextStyleName()` — Slugifies text style names
+- `figmaStyleToWeight()` — Maps Figma font style names to CSS numeric weights
+- `formatRawTextProperty()` — Extracts raw CSS value from text style property
+- `resolveTextStyleProperty()` — Resolves to `var()` reference if variable-bound
+
+**Modified functions:**
+- `generateFluidCSS()` — Non-linear candidate detection + piecewise clamp routing
+- `handleGenerateCSS()` — Text style section appended after variables
+- `generateCSSOutput()` — Output mode added to header comment
+
+#### ui.html
+
+**Added UI:**
+- Output Mode radio toggle (Fluid / Fixed) in Options section
+- Text Styles section with checkbox + format radio dropdown
+- Non-linear scaling detection panel (purple theme, collapsible)
+- `@mixin` keyword added to syntax highlighting
+
+**Added JS functions:**
+- `handleOutputModeChange()` — Hides/shows relevant options per mode
+- `updateOutputFormatInfo()` — Updates Output Format info text per mode
+- `renderNonLinearCandidates()` — Renders purple detection panel
+- `updateNonLinearSelection()`, `toggleAllNonLinearSelections()`, `regenerateWithNonLinearSelections()` — Panel interaction handlers
+
+---
+
+## v1.6 — 2026-02-10
+
+### Summary
+
+This release fixes unitless number export (font-weight, column-count, etc.), handles font-style string values correctly, and makes edge-case detection panels collapsible.
+
+### Bug Fixes
+
+#### BUG-01: Font weight values no longer exported with `px` suffix
+
+Font-weight variables (and other unitless numeric properties) are now detected by naming convention and exported without units.
+
+**Before:**
+```css
+--typo-type-weight-light: 300px;
+--typo-type-weight-bold: 700px;
+```
+
+**After:**
+```css
+--typo-type-weight-light: 300;
+--typo-type-weight-bold: 700;
+```
+
+#### BUG-02: Font-style string values exported unquoted
+
+STRING variables containing CSS font-style keywords (`italic`, `oblique`, `normal`) are now output unquoted, producing valid CSS.
+
+**Before:**
+```css
+--typo-type-weight-italic: "Italic";
+```
+
+**After:**
+```css
+--typo-type-weight-italic: italic;
+```
+
+#### BUG-03: Grid column count no longer exported with `px` suffix
+
+Variables with "count" or "columns" in their name are now unitless.
+
+**Before:**
+```css
+--dimension-grid-column-count: 12px;
+```
+
+**After:**
+```css
+--dimension-grid-column-count: 12;
+```
+
+### New Features
+
+#### FEAT-01: Unitless number detection by naming convention
+
+FLOAT variables are now checked against a list of CSS-unitless keywords: `weight`, `count`, `columns`, `rows`, `opacity`, `z-index`, `order`, `flex-grow`, `flex-shrink`, `ratio`. Detection applies to both the Figma variable name and the generated CSS name. Unitless variables also produce unitless `clamp()` output when values vary across breakpoints. Note: `line-height` is intentionally excluded — design system line-heights are typically pixel values (e.g., 38px from font-size × 1.5), and a unitless CSS line-height of 38 would mean 38× the font-size.
+
+#### FEAT-03: Collapsible detection panels
+
+The viewport-relative and proportion detection panels can now be collapsed by clicking their header. This keeps the CSS preview visible when the plugin window is small.
+
+### Technical Changes
+
+#### code.ts
+
+**Added constants:**
+- `UNITLESS_KEYWORDS` — Array of naming patterns that indicate unitless CSS values
+- `FONT_STYLE_KEYWORDS` — Array of valid CSS font-style keywords
+
+**Added functions:**
+- `isUnitless()` — Checks variable name/cssName against unitless keywords
+- `isFontStyleValue()` — Checks if a string value is a CSS font-style keyword
+
+**Modified functions:**
+- `formatCSSValue()` — Uses `isUnitless()` to omit `px` for unitless FLOAT values; uses `isFontStyleValue()` to output font-style strings unquoted
+- `generateFluidValue()` — Respects unitless flag throughout clamp/min output
+
+#### ui.html
+
+**Added CSS:**
+- `.collapsed` state for viewport and proportion panels (hides body, keeps header)
+- `.panel-collapse-icon` with rotation transition
+
+**Added HTML:**
+- Collapse toggle icon (▼) in each panel header
+- `onclick` handler on panel headers
+
+**Added JS:**
+- `togglePanelCollapse()` — Toggles `.collapsed` class on a panel
+
+---
+
 ## v1.5.1 — 2026-02-02
 
 ### Bug Fixes

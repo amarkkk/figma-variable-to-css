@@ -1,7 +1,19 @@
 /// <reference types="@figma/plugin-typings" />
 
-// Variable to CSS v1.3
+// Variable to CSS v1.7
 // Figma Plugin for exporting variable collections to CSS custom properties
+//
+// v1.7 Features:
+// - Fixed-value export mode: raw values per breakpoint, no clamp() interpolation
+// - Piecewise linear clamp: 3-segment clamp() for non-linear scaling variables
+// - Composite text style export: SCSS mixins, CSS classes, or CSS custom properties
+//   from Figma Text Styles with var() references to bound variables
+//
+// v1.6 Fixes & Features:
+// - Unitless number detection: font-weight, column-count, opacity, z-index, etc.
+//   no longer get an incorrect 'px' suffix
+// - Font-style string values (italic, oblique, normal) output unquoted
+// - Collapsible viewport/proportion detection panels in UI
 //
 // v1.3 Features:
 // - Multi-mode CSS export: Variables with breakpoint modes (Desktop/Laptop/Tablet/Mobile)
@@ -62,7 +74,7 @@ interface ProcessedValue {
 }
 
 interface ExportOptions {
-  outputMode: 'fluid' | 'stepped';
+  outputMode: 'fluid' | 'fixed';
   aliasMode: 'preserved' | 'resolved';
   darkModeOutput: 'prefers-color-scheme' | 'class' | 'both';
   includeTimestamp: boolean;
@@ -75,6 +87,12 @@ interface ExportOptions {
   // List of CSS variable names that should output as flex/grid proportions
   // instead of clamp() - outputs unitless number + --fr variant
   proportionOverrides?: string[];
+  // List of CSS variable names that should use piecewise clamp() segments
+  // (3 segments between adjacent breakpoints) instead of single linear clamp()
+  nonLinearOverrides?: string[];
+  // Text style export options
+  includeTextStyles?: boolean;
+  textStyleFormat?: 'scss-mixin' | 'css-class' | 'css-vars';
 }
 
 interface ViewportCandidate {
@@ -87,6 +105,14 @@ interface ProportionCandidate {
   cssName: string;
   originalName: string;
   columnCount: number; // Detected column count (e.g., 12 for "whole", 6 for "half")
+}
+
+interface NonLinearCandidate {
+  cssName: string;
+  originalName: string;
+  deviationL: number;  // Fractional deviation at Laptop breakpoint
+  deviationT: number;  // Fractional deviation at Tablet breakpoint
+  maxDeviation: number; // Max of the two, for display
 }
 
 interface CSSOutput {
@@ -103,6 +129,12 @@ interface CSSOutput {
     proportionVars: string[];
     // Candidates detected for proportion treatment (for UI to show)
     proportionCandidates: ProportionCandidate[];
+    // Variables that used piecewise clamp (non-linear scaling)
+    nonLinearVars: string[];
+    // Candidates detected for non-linear treatment (for UI to show)
+    nonLinearCandidates: NonLinearCandidate[];
+    // Number of text styles exported (0 if not included)
+    textStyleCount: number;
   };
 }
 
@@ -146,6 +178,8 @@ figma.ui.onmessage = async function(msg: any) {
     
     if (msg.type === 'scan-collections') {
       await handleScanCollections();
+    } else if (msg.type === 'scan-textstyles') {
+      await handleScanTextStyles();
     } else if (msg.type === 'generate-css') {
       await handleGenerateCSS(msg.options as ExportOptions);
     } else if (msg.type === 'cancel') {
@@ -209,6 +243,14 @@ async function handleScanCollections() {
     type: 'collections-scanned',
     collections: collectionInfos,
     totalVariables: totalVariables
+  });
+}
+
+async function handleScanTextStyles() {
+  var textStyles = await figma.getLocalTextStylesAsync();
+  figma.ui.postMessage({
+    type: 'textstyles-scanned',
+    count: textStyles.length
   });
 }
 
@@ -407,8 +449,23 @@ async function handleGenerateCSS(options: ExportOptions) {
   var proportionVars: string[] = [];
   var proportionCandidates: ProportionCandidate[] = [];
 
+  // Track non-linear variables and candidates for reporting
+  var nonLinearVars: string[] = [];
+  var nonLinearCandidates: NonLinearCandidate[] = [];
+
   // Generate CSS with deduplication
-  var css = generateCSSOutput(collectionGroups, collections, options, outputtedCSSNames, errors, viewportRelativeVars, viewportCandidates, proportionVars, proportionCandidates);
+  var css = generateCSSOutput(collectionGroups, collections, options, outputtedCSSNames, errors, viewportRelativeVars, viewportCandidates, proportionVars, proportionCandidates, nonLinearVars, nonLinearCandidates);
+
+  // Append text styles section if enabled
+  var textStyleCount = 0;
+  if (options.includeTextStyles) {
+    var allTextStyles = await figma.getLocalTextStylesAsync();
+    textStyleCount = allTextStyles.length;
+    var textStyleLines = await generateTextStyleCSS(options, variableMap);
+    if (textStyleLines.length > 0) {
+      css += '\n' + textStyleLines.join('\n');
+    }
+  }
 
   var nonRemoteCount = 0;
   for (var i = 0; i < collections.length; i++) {
@@ -426,7 +483,10 @@ async function handleGenerateCSS(options: ExportOptions) {
         viewportRelativeVars: viewportRelativeVars,
         viewportCandidates: viewportCandidates,
         proportionVars: proportionVars,
-        proportionCandidates: proportionCandidates
+        proportionCandidates: proportionCandidates,
+        nonLinearVars: nonLinearVars,
+        nonLinearCandidates: nonLinearCandidates,
+        textStyleCount: textStyleCount
       }
     }
   });
@@ -592,7 +652,9 @@ function generateCSSOutput(
   viewportRelativeVars: string[],
   viewportCandidates: ViewportCandidate[],
   proportionVars: string[],
-  proportionCandidates: ProportionCandidate[]
+  proportionCandidates: ProportionCandidate[],
+  nonLinearVars: string[],
+  nonLinearCandidates: NonLinearCandidate[]
 ): string {
   var lines: string[] = [];
   var timestamp = new Date().toISOString();
@@ -603,6 +665,7 @@ function generateCSSOutput(
   if (options.includeTimestamp) {
     lines.push('   Date: ' + timestamp);
   }
+  lines.push('   Mode: ' + (options.outputMode === 'fluid' ? 'Fluid (clamp)' : 'Fixed (per-breakpoint)'));
   lines.push('   ========================================================================== */');
   lines.push('');
   
@@ -656,7 +719,7 @@ function generateCSSOutput(
     
     var sectionLines: string[];
     if (modeType === 'breakpoint') {
-      sectionLines = generateBreakpointCSS(collection, variables, options, outputtedCSSNames, errors, viewportRelativeVars, viewportCandidates, proportionVars, proportionCandidates);
+      sectionLines = generateBreakpointCSS(collection, variables, options, outputtedCSSNames, errors, viewportRelativeVars, viewportCandidates, proportionVars, proportionCandidates, nonLinearVars, nonLinearCandidates);
     } else if (modeType === 'theme') {
       sectionLines = generateThemeCSS(collection, variables, options, outputtedCSSNames, errors);
     } else {
@@ -705,7 +768,9 @@ function generateBreakpointCSS(
   viewportRelativeVars: string[],
   viewportCandidates: ViewportCandidate[],
   proportionVars: string[],
-  proportionCandidates: ProportionCandidate[]
+  proportionCandidates: ProportionCandidate[],
+  nonLinearVars: string[],
+  nonLinearCandidates: NonLinearCandidate[]
 ): string[] {
   var lines: string[] = [];
 
@@ -723,8 +788,9 @@ function generateBreakpointCSS(
 
   var resultLines: string[];
   if (options.outputMode === 'fluid' && sortedModes.length >= 2) {
-    resultLines = generateFluidCSS(sortedModes, variables, options, outputtedCSSNames, errors, viewportRelativeVars, viewportCandidates, proportionVars, proportionCandidates);
+    resultLines = generateFluidCSS(sortedModes, variables, options, outputtedCSSNames, errors, viewportRelativeVars, viewportCandidates, proportionVars, proportionCandidates, nonLinearVars, nonLinearCandidates);
   } else {
+    // 'fixed' mode: output raw values per breakpoint using @media queries
     resultLines = generateSteppedCSS(sortedModes, variables, options, outputtedCSSNames, errors);
   }
 
@@ -744,7 +810,9 @@ function generateFluidCSS(
   viewportRelativeVars: string[],
   viewportCandidates: ViewportCandidate[],
   proportionVars: string[],
-  proportionCandidates: ProportionCandidate[]
+  proportionCandidates: ProportionCandidate[],
+  nonLinearVars: string[],
+  nonLinearCandidates: NonLinearCandidate[]
 ): string[] {
   var lines: string[] = [];
 
@@ -793,6 +861,18 @@ function generateFluidCSS(
             columnCount: columnCount
           });
         }
+
+        // Check if this is a non-linear candidate (for UI display)
+        var deviation = getNonLinearDeviation(variable, modes);
+        if (deviation) {
+          nonLinearCandidates.push({
+            cssName: variable.cssName,
+            originalName: variable.name,
+            deviationL: deviation.deviationL,
+            deviationT: deviation.deviationT,
+            maxDeviation: Math.max(deviation.deviationL, deviation.deviationT)
+          });
+        }
       }
     }
   }
@@ -824,6 +904,12 @@ function generateFluidCSS(
             // Fallback if column count detection failed but user selected it
             lines.push('  ' + variable.cssName + ': ' + cssValue + ';');
           }
+        } else if (shouldUsePiecewiseClamp(variable, options)) {
+          // Piecewise clamp: Desktop→Laptop segment in :root
+          nonLinearVars.push(variable.cssName);
+          lines.push('  /* Piecewise clamp: non-linear scaling (3 segments) */');
+          var piecewiseRootValue = generatePiecewiseClampValue(modes[0], modes[1], variable);
+          lines.push('  ' + variable.cssName + ': ' + piecewiseRootValue + ';');
         } else {
           var fluidResult = generateFluidValue(modes, variable, options, viewportRelativeVars);
           // Add comment for viewport-relative variables
@@ -895,6 +981,42 @@ function generateFluidCSS(
     }
   }
 
+  // Piecewise clamp media queries for non-linear variables
+  // These output Laptop→Tablet and Tablet→Mobile clamp segments in @media blocks
+  if (options.nonLinearOverrides && options.nonLinearOverrides.length > 0) {
+    var piecewiseVars = clampableVars.filter(function(v) {
+      return shouldUsePiecewiseClamp(v, options) && hasModeVariance(v, modes, options) && v.resolvedType === 'FLOAT';
+    });
+
+    if (piecewiseVars.length > 0 && modes.length >= 3) {
+      // Laptop→Tablet segment
+      lines.push('');
+      lines.push('/* Piecewise clamp: Laptop → Tablet segment */');
+      lines.push('@media (max-width: ' + (modes[0].breakpointPx - 1) + 'px) {');
+      lines.push('  :root {');
+      for (var vi = 0; vi < piecewiseVars.length; vi++) {
+        var v = piecewiseVars[vi];
+        lines.push('    ' + v.cssName + ': ' + generatePiecewiseClampValue(modes[1], modes[2], v) + ';');
+      }
+      lines.push('  }');
+      lines.push('}');
+
+      // Tablet→Mobile segment (if 4+ modes)
+      if (modes.length >= 4) {
+        lines.push('');
+        lines.push('/* Piecewise clamp: Tablet → Mobile segment */');
+        lines.push('@media (max-width: ' + (modes[1].breakpointPx - 1) + 'px) {');
+        lines.push('  :root {');
+        for (var vi = 0; vi < piecewiseVars.length; vi++) {
+          var v = piecewiseVars[vi];
+          lines.push('    ' + v.cssName + ': ' + generatePiecewiseClampValue(modes[2], modes[3], v) + ';');
+        }
+        lines.push('  }');
+        lines.push('}');
+      }
+    }
+  }
+
   // Fallback media queries for clampable variables (for older browsers that don't support clamp/min)
   // Only include if option is enabled
   if (options.includeLegacyFallbacks) {
@@ -956,6 +1078,46 @@ function shouldUseViewportRelative(variable: VariableInfo, options: ExportOption
   return false;
 }
 
+// Keywords in variable names that indicate unitless numeric values (no px suffix)
+// These CSS properties accept unitless numbers: font-weight, column-count, opacity,
+// z-index, flex-grow/shrink, order, aspect-ratio, etc.
+// NOTE: line-height is intentionally excluded — design systems typically define
+// line-height in pixels (e.g., 38px from font-size × 1.5). A unitless CSS
+// line-height of 38 would mean 38× the font-size, which is catastrophically wrong.
+var UNITLESS_KEYWORDS: string[] = [
+  'weight', 'column-count', 'column count', 'columncount',
+  'opacity', 'z-index', 'zindex', 'z index',
+  'order', 'flex-grow', 'flex-shrink', 'flex grow', 'flex shrink',
+  'ratio', 'columns', 'rows', 'count'
+];
+
+// Check if a FLOAT variable should be exported without a unit (unitless number)
+// Detection is by naming convention: if the variable name contains a unitless keyword
+function isUnitless(variable: VariableInfo): boolean {
+  var nameLower = variable.name.toLowerCase();
+  var cssNameLower = variable.cssName.toLowerCase();
+  for (var i = 0; i < UNITLESS_KEYWORDS.length; i++) {
+    if (nameLower.indexOf(UNITLESS_KEYWORDS[i]) !== -1 || cssNameLower.indexOf(UNITLESS_KEYWORDS[i]) !== -1) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// CSS font-style keywords that should be output unquoted when found as STRING values
+var FONT_STYLE_KEYWORDS: string[] = ['italic', 'oblique', 'normal'];
+
+// Check if a STRING value is a CSS font-style keyword (should be output unquoted)
+function isFontStyleValue(value: string): boolean {
+  var lower = value.toLowerCase().trim();
+  for (var i = 0; i < FONT_STYLE_KEYWORDS.length; i++) {
+    if (lower === FONT_STYLE_KEYWORDS[i] || lower.indexOf('oblique ') === 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
 // Proportion name to column count mapping (based on 12-column grid)
 // IMPORTANT: Array is ordered from longest to shortest names to ensure
 // "three-quarters" matches before "quarter", "two-thirds" before "third", etc.
@@ -1003,6 +1165,111 @@ function shouldUseProportion(variable: VariableInfo, options: ExportOptions): bo
   return false;
 }
 
+// Non-linear detection: 5% deviation threshold
+// If Laptop or Tablet values deviate >5% from the linear line between Desktop and Mobile,
+// the variable is flagged as non-linear (candidate for piecewise clamp)
+var NON_LINEAR_THRESHOLD = 0.05;
+
+function getNonLinearDeviation(
+  variable: VariableInfo,
+  modes: Array<{ modeId: string; name: string; breakpointPx: number }>
+): { deviationL: number; deviationT: number } | null {
+  // Need exactly 4 modes (Desktop, Laptop, Tablet, Mobile)
+  if (modes.length < 4) return null;
+
+  // Must be FLOAT with no aliases across all modes
+  if (variable.resolvedType !== 'FLOAT') return null;
+  for (var i = 0; i < modes.length; i++) {
+    var val = variable.valuesByMode[modes[i].modeId];
+    if (!val || val.isAlias) return null;
+  }
+
+  var dVal = variable.valuesByMode[modes[0].modeId].resolved;
+  var lVal = variable.valuesByMode[modes[1].modeId].resolved;
+  var tVal = variable.valuesByMode[modes[2].modeId].resolved;
+  var mVal = variable.valuesByMode[modes[3].modeId].resolved;
+
+  if (typeof dVal !== 'number' || typeof lVal !== 'number' ||
+      typeof tVal !== 'number' || typeof mVal !== 'number') return null;
+
+  // If desktop equals mobile (no scaling), skip
+  if (dVal === mVal) return null;
+
+  var dVP = modes[0].breakpointPx;
+  var lVP = modes[1].breakpointPx;
+  var tVP = modes[2].breakpointPx;
+  var mVP = modes[3].breakpointPx;
+
+  // Calculate expected linear values at Laptop and Tablet
+  var slope = (dVal - mVal) / (dVP - mVP);
+  var expectedL = mVal + slope * (lVP - mVP);
+  var expectedT = mVal + slope * (tVP - mVP);
+
+  // Calculate deviation as fraction of the total range
+  var range = Math.abs(dVal - mVal);
+  var deviationL = Math.abs(lVal - expectedL) / range;
+  var deviationT = Math.abs(tVal - expectedT) / range;
+
+  // Only flag if either deviation exceeds threshold
+  if (deviationL < NON_LINEAR_THRESHOLD && deviationT < NON_LINEAR_THRESHOLD) {
+    return null;
+  }
+
+  return { deviationL: deviationL, deviationT: deviationT };
+}
+
+function shouldUsePiecewiseClamp(variable: VariableInfo, options: ExportOptions): boolean {
+  if (options.nonLinearOverrides && options.nonLinearOverrides.length > 0) {
+    return options.nonLinearOverrides.indexOf(variable.cssName) !== -1;
+  }
+  return false;
+}
+
+// Generate a clamp() value for a single segment between two adjacent breakpoints
+function generatePiecewiseClampValue(
+  fromMode: { modeId: string; name: string; breakpointPx: number },
+  toMode: { modeId: string; name: string; breakpointPx: number },
+  variable: VariableInfo
+): string {
+  var fromVal = variable.valuesByMode[fromMode.modeId];
+  var toVal = variable.valuesByMode[toMode.modeId];
+
+  var fromValue = fromVal ? fromVal.resolved : null;
+  var toValue = toVal ? toVal.resolved : null;
+
+  var unitless = isUnitless(variable);
+  var unit = unitless ? '' : 'px';
+
+  if (typeof fromValue !== 'number' || typeof toValue !== 'number') {
+    return fromValue + unit;
+  }
+
+  if (fromValue === toValue) {
+    return round(fromValue, 2) + unit;
+  }
+
+  var fromVP = fromMode.breakpointPx;
+  var toVP = toMode.breakpointPx;
+
+  var slope = (fromValue - toValue) / (fromVP - toVP);
+  var intercept = toValue - slope * toVP;
+
+  var slopeVW = round(slope * 100, 4);
+  var interceptPx = round(intercept, 2);
+
+  var minPx = round(Math.min(fromValue, toValue), 2);
+  var maxPx = round(Math.max(fromValue, toValue), 2);
+
+  var preferred: string;
+  if (interceptPx >= 0) {
+    preferred = interceptPx + unit + ' + ' + slopeVW + 'vw';
+  } else {
+    preferred = slopeVW + 'vw - ' + Math.abs(interceptPx) + unit;
+  }
+
+  return 'clamp(' + minPx + unit + ', calc(' + preferred + '), ' + maxPx + unit + ')';
+}
+
 // Generate CSS value for a variable - either clamp() or min() for viewport-relative
 function generateFluidValue(
   modes: Array<{ modeId: string; name: string; breakpointPx: number }>,
@@ -1019,8 +1286,12 @@ function generateFluidValue(
   var maxValue = maxVal ? maxVal.resolved : null;
   var minValue = minVal ? minVal.resolved : null;
 
+  // Determine unit suffix — unitless variables (font-weight, count, etc.) get no unit
+  var unitless = isUnitless(variable);
+  var unit = unitless ? '' : 'px';
+
   if (typeof maxValue !== 'number' || typeof minValue !== 'number') {
-    return { value: maxValue + 'px', isViewportRelative: false };
+    return { value: maxValue + unit, isViewportRelative: false };
   }
 
   // Check if this variable should use viewport-relative formula
@@ -1029,9 +1300,14 @@ function generateFluidValue(
     viewportRelativeVars.push(variable.cssName);
     // Use min(100vw, maxValue) - the container should be 100% of viewport up to max
     return {
-      value: 'min(100vw, ' + round(maxValue, 2) + 'px)',
+      value: 'min(100vw, ' + round(maxValue, 2) + unit + ')',
       isViewportRelative: true
     };
+  }
+
+  // If unitless and values are equal across breakpoints, just output the value
+  if (unitless && maxValue === minValue) {
+    return { value: String(round(maxValue, 2)), isViewportRelative: false };
   }
 
   // Standard clamp() interpolation
@@ -1049,13 +1325,13 @@ function generateFluidValue(
 
   var preferred: string;
   if (interceptPx >= 0) {
-    preferred = interceptPx + 'px + ' + slopeVW + 'vw';
+    preferred = interceptPx + unit + ' + ' + slopeVW + 'vw';
   } else {
-    preferred = slopeVW + 'vw - ' + Math.abs(interceptPx) + 'px';
+    preferred = slopeVW + 'vw - ' + Math.abs(interceptPx) + unit;
   }
 
   return {
-    value: 'clamp(' + minPx + 'px, calc(' + preferred + '), ' + maxPx + 'px)',
+    value: 'clamp(' + minPx + unit + ', calc(' + preferred + '), ' + maxPx + unit + ')',
     isViewportRelative: false
   };
 }
@@ -1352,8 +1628,16 @@ function formatCSSValue(
   if (variable.resolvedType === 'COLOR') {
     return String(value.resolved);
   } else if (variable.resolvedType === 'FLOAT') {
-    return value.resolved + 'px';
+    var rounded = round(value.resolved as number, 2);
+    if (isUnitless(variable)) {
+      return String(rounded);
+    }
+    return rounded + 'px';
   } else if (variable.resolvedType === 'STRING') {
+    // Font-style keywords (italic, oblique, normal) should be unquoted in CSS
+    if (typeof value.resolved === 'string' && isFontStyleValue(value.resolved)) {
+      return value.resolved.toLowerCase().trim();
+    }
     return '"' + value.resolved + '"';
   } else if (variable.resolvedType === 'BOOLEAN') {
     return String(value.resolved);
@@ -1365,4 +1649,180 @@ function formatCSSValue(
 function round(value: number, decimals: number): number {
   var factor = Math.pow(10, decimals);
   return Math.round(value * factor) / factor;
+}
+
+// ============================================
+// TEXT STYLE EXPORT (FEAT-04)
+// ============================================
+
+// Slugify a Figma text style name to a CSS-safe identifier
+// e.g., "Short-form/Heading/Heading 1" → "heading-heading-1"
+function generateTextStyleName(styleName: string): string {
+  // Remove common prefixes like "Short-form/" or "Long-form/"
+  var cleaned = styleName
+    .replace(/^(?:Short-form|Long-form|SF|LF)\s*\/\s*/i, '');
+
+  return cleaned
+    .toLowerCase()
+    .replace(/\//g, '-')
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '-')
+    .replace(/-{2,}/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+// Map Figma font style name to CSS numeric font-weight
+function figmaStyleToWeight(styleName: string): number {
+  var lower = styleName.toLowerCase();
+  if (lower.indexOf('thin') !== -1 || lower.indexOf('hairline') !== -1) return 100;
+  if (lower.indexOf('extralight') !== -1 || lower.indexOf('ultralight') !== -1) return 200;
+  if (lower.indexOf('light') !== -1) return 300;
+  if (lower.indexOf('medium') !== -1) return 500;
+  if (lower.indexOf('semibold') !== -1 || lower.indexOf('demibold') !== -1) return 600;
+  if (lower.indexOf('extrabold') !== -1 || lower.indexOf('ultrabold') !== -1) return 800;
+  if (lower.indexOf('bold') !== -1) return 700;
+  if (lower.indexOf('black') !== -1 || lower.indexOf('heavy') !== -1) return 900;
+  return 400; // Regular/Normal
+}
+
+// Extract raw CSS value from a text style property
+function formatRawTextProperty(style: TextStyle, property: string): string {
+  switch (property) {
+    case 'fontFamily':
+      return '"' + style.fontName.family + '"';
+    case 'fontSize':
+      return round(style.fontSize, 2) + 'px';
+    case 'fontWeight':
+      return String(figmaStyleToWeight(style.fontName.style));
+    case 'fontStyle':
+      return style.fontName.style.toLowerCase().indexOf('italic') !== -1 ? 'italic' : 'normal';
+    case 'lineHeight': {
+      var lh = style.lineHeight as { readonly unit: string; readonly value: number };
+      if (lh.unit === 'PIXELS') {
+        return round(lh.value, 2) + 'px';
+      } else if (lh.unit === 'PERCENT') {
+        return round(lh.value / 100, 2).toFixed(2);
+      }
+      return 'normal';
+    }
+    case 'letterSpacing': {
+      var ls = style.letterSpacing as { readonly unit: string; readonly value: number };
+      if (ls.unit === 'PIXELS') {
+        return round(ls.value, 2) + 'px';
+      } else if (ls.unit === 'PERCENT') {
+        return round(ls.value / 100, 3).toFixed(3) + 'em';
+      }
+      return '0px';
+    }
+    default:
+      return '';
+  }
+}
+
+// Resolve a text style property to a var() reference if bound to a variable, else raw value
+// NOTE: Fallback values are intentionally omitted from var() references because the bound
+// variable is typically responsive (different values per breakpoint via clamp() or @media).
+// A static fallback like "20px" would be incorrect when the variable resolves to different
+// values across viewports. The var() reference alone is correct — if the variable is missing,
+// the browser's inherited/initial value is a safer fallback than a wrong static value.
+function resolveTextStyleProperty(
+  style: TextStyle,
+  property: string,
+  variableMap: Map<string, VariableInfo>
+): { value: string; varRef: string | null } {
+  var boundVars = (style as any).boundVariables;
+  if (boundVars && boundVars[property]) {
+    var binding = boundVars[property];
+    var varId: string | null = null;
+    if (typeof binding === 'object' && binding !== null && 'id' in binding) {
+      varId = (binding as any).id;
+    }
+    if (varId) {
+      var varInfo = variableMap.get(varId);
+      if (varInfo) {
+        return { value: formatRawTextProperty(style, property), varRef: 'var(' + varInfo.cssName + ')' };
+      }
+    }
+  }
+
+  return { value: formatRawTextProperty(style, property), varRef: null };
+}
+
+// Generate the text styles CSS section
+async function generateTextStyleCSS(
+  options: ExportOptions,
+  variableMap: Map<string, VariableInfo>
+): Promise<string[]> {
+  var lines: string[] = [];
+  var textStyles = await figma.getLocalTextStylesAsync();
+
+  if (textStyles.length === 0) return lines;
+
+  lines.push('/* --------------------------------------------------------------------------');
+  lines.push('   TEXT STYLES — Composite typography tokens from Figma Text Styles');
+  lines.push('   Format: ' + (options.textStyleFormat === 'scss-mixin' ? 'SCSS Mixins' : options.textStyleFormat === 'css-class' ? 'CSS Classes' : 'CSS Custom Properties'));
+  lines.push('   -------------------------------------------------------------------------- */');
+  lines.push('');
+
+  // For CSS vars format, wrap in :root
+  if (options.textStyleFormat === 'css-vars') {
+    lines.push(':root {');
+  }
+
+  for (var i = 0; i < textStyles.length; i++) {
+    var style = textStyles[i];
+    var cssName = generateTextStyleName(style.name);
+
+    var family = resolveTextStyleProperty(style, 'fontFamily', variableMap);
+    var size = resolveTextStyleProperty(style, 'fontSize', variableMap);
+    var weight = resolveTextStyleProperty(style, 'fontWeight', variableMap);
+    var fontStyle = resolveTextStyleProperty(style, 'fontStyle', variableMap);
+    var lineHeight = resolveTextStyleProperty(style, 'lineHeight', variableMap);
+    var letterSpacing = resolveTextStyleProperty(style, 'letterSpacing', variableMap);
+
+    var familyVal = family.varRef || family.value;
+    var sizeVal = size.varRef || size.value;
+    var weightVal = weight.varRef || weight.value;
+    var fontStyleVal = fontStyle.varRef || fontStyle.value;
+    var lineHeightVal = lineHeight.varRef || lineHeight.value;
+    var letterSpacingVal = letterSpacing.varRef || letterSpacing.value;
+
+    if (options.textStyleFormat === 'scss-mixin') {
+      lines.push('@mixin ' + cssName + ' {');
+      lines.push('  font-family: ' + familyVal + ';');
+      lines.push('  font-size: ' + sizeVal + ';');
+      lines.push('  font-style: ' + fontStyleVal + ';');
+      lines.push('  font-weight: ' + weightVal + ';');
+      lines.push('  line-height: ' + lineHeightVal + ';');
+      lines.push('  letter-spacing: ' + letterSpacingVal + ';');
+      lines.push('}');
+
+    } else if (options.textStyleFormat === 'css-class') {
+      lines.push('.' + cssName + ' {');
+      lines.push('  font-family: ' + familyVal + ';');
+      lines.push('  font-size: ' + sizeVal + ';');
+      lines.push('  font-style: ' + fontStyleVal + ';');
+      lines.push('  font-weight: ' + weightVal + ';');
+      lines.push('  line-height: ' + lineHeightVal + ';');
+      lines.push('  letter-spacing: ' + letterSpacingVal + ';');
+      lines.push('}');
+
+    } else if (options.textStyleFormat === 'css-vars') {
+      lines.push('  --' + cssName + '-family: ' + familyVal + ';');
+      lines.push('  --' + cssName + '-size: ' + sizeVal + ';');
+      lines.push('  --' + cssName + '-style: ' + fontStyleVal + ';');
+      lines.push('  --' + cssName + '-weight: ' + weightVal + ';');
+      lines.push('  --' + cssName + '-line-height: ' + lineHeightVal + ';');
+      lines.push('  --' + cssName + '-letter-spacing: ' + letterSpacingVal + ';');
+    }
+
+    lines.push('');
+  }
+
+  // Close :root for CSS vars format
+  if (options.textStyleFormat === 'css-vars') {
+    lines.push('}');
+  }
+
+  return lines;
 }

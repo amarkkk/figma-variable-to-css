@@ -266,116 +266,298 @@
       line-height: 1.4;
     }
 
-    /* Viewport Candidates Panel - Warning Style */
-    .viewport-panel {
-      padding: 16px;
-      background: var(--warning-bg);
-      border: 1px solid var(--warning-border);
-      border-radius: 6px;
-      margin: 12px;
+    /* Collapsible option sections with smooth transitions */
+    .option-collapsible {
+      overflow: hidden;
+      transition: max-height 0.25s ease, opacity 0.2s ease, margin 0.25s ease;
+      max-height: 200px;
+      opacity: 1;
     }
 
-    .viewport-panel-header {
+    .option-collapsible.collapsed {
+      max-height: 0;
+      opacity: 0;
+      margin-top: 0 !important;
+      margin-bottom: 0 !important;
+    }
+
+    /* Two-column options grid for sidebar */
+    .options-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 12px;
+      margin-bottom: 10px;
+    }
+
+    .options-grid .option-col {
+      min-width: 0;
+    }
+
+    .options-grid .option-col-label {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 4px;
+    }
+
+    .options-grid .option-col-value {
+      font-size: 11px;
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    /* ============================================
+       UNIFIED DETECTION PANEL
+       ============================================ */
+    .detection-panel {
+      margin: 12px;
+      border: 1px solid var(--border-medium);
+      border-radius: 6px;
+      background: var(--bg-secondary);
+      overflow: hidden;
+    }
+
+    .detection-panel-header {
       display: flex;
       align-items: center;
       gap: 8px;
-      margin-bottom: 12px;
+      padding: 12px 16px;
+      background: var(--bg-tertiary);
+      border-bottom: 1px solid var(--border-medium);
+      cursor: default;
+      user-select: none;
     }
 
-    .viewport-panel-icon {
-      font-size: 16px;
-    }
-
-    .viewport-panel h3 {
+    .detection-panel-header h3 {
       font-size: 12px;
       font-weight: 600;
-      color: var(--warning-text);
+      color: var(--text-primary);
       margin: 0;
+      flex: 1;
     }
 
-    .viewport-panel-description {
+    .detection-panel-header .detection-badge {
+      font-size: 10px;
+      background: var(--accent-primary);
+      color: white;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-weight: 500;
+    }
+
+    .panel-collapse-icon {
+      font-size: 10px;
+      color: var(--text-tertiary);
+      transition: transform 0.2s ease;
+    }
+
+    .collapsed .panel-collapse-icon {
+      transform: rotate(-90deg);
+    }
+
+    /* Accordion section (subsection within unified panel) */
+    .detection-section {
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .detection-section:last-child {
+      border-bottom: none;
+    }
+
+    .detection-section-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.15s;
+    }
+
+    .detection-section-header:hover {
+      background: var(--bg-hover);
+    }
+
+    .detection-section-icon {
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .detection-section-title {
       font-size: 11px;
-      color: var(--text-secondary);
-      line-height: 1.5;
-      margin-bottom: 12px;
+      font-weight: 600;
+      flex: 1;
     }
 
-    .viewport-panel-description code {
+    .detection-section-count {
+      font-size: 10px;
+      color: var(--text-tertiary);
+      background: var(--bg-tertiary);
+      padding: 1px 6px;
+      border-radius: 8px;
+    }
+
+    .detection-section-chevron {
+      font-size: 9px;
+      color: var(--text-tertiary);
+      transition: transform 0.2s ease;
+    }
+
+    .detection-section.section-collapsed .detection-section-chevron {
+      transform: rotate(-90deg);
+    }
+
+    .detection-section-body {
+      padding: 0 16px 12px;
+      overflow: hidden;
+      transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.2s ease;
+      max-height: 400px;
+      opacity: 1;
+    }
+
+    .detection-section.section-collapsed .detection-section-body {
+      max-height: 0;
+      padding-top: 0;
+      padding-bottom: 0;
+      opacity: 0;
+    }
+
+    .detection-section-description {
+      font-size: 10px;
+      color: var(--text-tertiary);
+      line-height: 1.5;
+      margin-bottom: 8px;
+    }
+
+    .detection-section-description code {
       font-family: 'SF Mono', 'Monaco', monospace;
       font-size: 10px;
-      background: rgba(0,0,0,0.1);
+      background: rgba(0,0,0,0.08);
       padding: 1px 4px;
       border-radius: 3px;
     }
 
-    .viewport-candidate-list {
+    /* Section color badges/accents */
+    .detection-section[data-type="viewport"] .detection-section-title { color: var(--warning-text); }
+    .detection-section[data-type="proportion"] .detection-section-title { color: var(--accent-primary); }
+    .detection-section[data-type="nonlinear"] .detection-section-title { color: #7c3aed; }
+    [data-theme="dark"] .detection-section[data-type="nonlinear"] .detection-section-title { color: #a78bfa; }
+
+    /* Candidate items (shared across all sections) */
+    .detection-candidate-list {
       display: flex;
       flex-direction: column;
-      gap: 6px;
-      margin-bottom: 12px;
-      max-height: 200px;
+      gap: 4px;
+      max-height: 180px;
       overflow-y: auto;
     }
 
-    .viewport-candidate-item {
+    .detection-candidate-item {
       display: flex;
       align-items: center;
       gap: 8px;
       background: var(--bg-primary);
-      padding: 8px 10px;
+      padding: 6px 10px;
       border-radius: 4px;
-      border: 1px solid var(--border-medium);
+      border: 1px solid var(--border-subtle);
     }
 
-    .viewport-candidate-item input[type="checkbox"] {
-      accent-color: var(--warning-text);
+    .detection-candidate-item:hover {
+      border-color: var(--border-medium);
+    }
+
+    .detection-candidate-item input[type="checkbox"] {
       width: 14px;
       height: 14px;
       flex-shrink: 0;
+      accent-color: var(--accent-primary);
     }
 
-    .viewport-candidate-info {
+    .detection-section[data-type="viewport"] .detection-candidate-item input[type="checkbox"] {
+      accent-color: var(--warning-text);
+    }
+
+    .detection-section[data-type="nonlinear"] .detection-candidate-item input[type="checkbox"] {
+      accent-color: #7c3aed;
+    }
+
+    .detection-candidate-info {
       flex: 1;
       min-width: 0;
     }
 
-    .viewport-candidate-name {
+    .detection-candidate-name {
       font-family: 'SF Mono', 'Monaco', monospace;
       font-size: 10px;
       color: var(--text-primary);
       word-break: break-all;
     }
 
-    .viewport-candidate-reason {
+    .detection-candidate-meta {
       font-size: 9px;
       color: var(--text-tertiary);
       margin-top: 2px;
     }
 
-    .viewport-panel-actions {
+    /* Non-linear deviation mini graph */
+    .deviation-graph {
       display: flex;
+      align-items: flex-end;
+      gap: 1px;
+      height: 20px;
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+
+    .deviation-bar {
+      width: 4px;
+      border-radius: 1px 1px 0 0;
+      transition: height 0.2s ease;
+    }
+
+    .deviation-bar.bar-desktop { background: var(--text-disabled); }
+    .deviation-bar.bar-laptop { background: #7c3aed; }
+    .deviation-bar.bar-tablet { background: #7c3aed; }
+    .deviation-bar.bar-mobile { background: var(--text-disabled); }
+    .deviation-bar.bar-expected { background: var(--border-strong); opacity: 0.5; }
+
+    [data-theme="dark"] .deviation-bar.bar-laptop { background: #a78bfa; }
+    [data-theme="dark"] .deviation-bar.bar-tablet { background: #a78bfa; }
+
+    /* Section toggle buttons */
+    .detection-section-toggle {
+      background: transparent;
+      color: var(--text-tertiary);
+      border: 1px solid var(--border-medium);
+      padding: 4px 8px;
+      border-radius: 3px;
+      font-size: 9px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      flex-shrink: 0;
+    }
+
+    .detection-section-toggle:hover {
+      background: var(--bg-hover);
+      color: var(--text-secondary);
+    }
+
+    /* Panel footer with single Apply button */
+    .detection-panel-footer {
+      padding: 10px 16px;
+      background: var(--bg-tertiary);
+      border-top: 1px solid var(--border-medium);
+      display: flex;
+      align-items: center;
       gap: 8px;
     }
 
-    .btn-regenerate {
-      background: var(--warning-text);
-      color: white;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: opacity 0.15s;
-    }
-
-    .btn-regenerate:hover {
-      opacity: 0.9;
-    }
-
-    .btn-regenerate:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
+    .detection-panel-footer .detection-summary {
+      flex: 1;
+      font-size: 10px;
+      color: var(--text-tertiary);
     }
 
     .btn-select-all {
@@ -391,123 +573,6 @@
 
     .btn-select-all:hover {
       background: var(--bg-hover);
-    }
-
-    /* Proportion Candidates Panel - Info Style (blue) */
-    .proportion-panel {
-      padding: 16px;
-      background: rgba(24, 160, 251, 0.1);
-      border: 1px solid rgba(24, 160, 251, 0.3);
-      border-radius: 6px;
-      margin: 12px;
-    }
-
-    [data-theme="dark"] .proportion-panel {
-      background: rgba(24, 160, 251, 0.15);
-      border-color: rgba(24, 160, 251, 0.4);
-    }
-
-    .proportion-panel-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 12px;
-    }
-
-    .proportion-panel-icon {
-      font-size: 16px;
-    }
-
-    .proportion-panel h3 {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--accent-primary);
-      margin: 0;
-    }
-
-    .proportion-panel-description {
-      font-size: 11px;
-      color: var(--text-secondary);
-      line-height: 1.5;
-      margin-bottom: 12px;
-    }
-
-    .proportion-panel-description code {
-      font-family: 'SF Mono', 'Monaco', monospace;
-      font-size: 10px;
-      background: rgba(0,0,0,0.1);
-      padding: 1px 4px;
-      border-radius: 3px;
-    }
-
-    .proportion-candidate-list {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      margin-bottom: 12px;
-      max-height: 200px;
-      overflow-y: auto;
-    }
-
-    .proportion-candidate-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: var(--bg-primary);
-      padding: 8px 10px;
-      border-radius: 4px;
-      border: 1px solid var(--border-medium);
-    }
-
-    .proportion-candidate-item input[type="checkbox"] {
-      accent-color: var(--accent-primary);
-      width: 14px;
-      height: 14px;
-      flex-shrink: 0;
-    }
-
-    .proportion-candidate-info {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .proportion-candidate-name {
-      font-family: 'SF Mono', 'Monaco', monospace;
-      font-size: 10px;
-      color: var(--text-primary);
-      word-break: break-all;
-    }
-
-    .proportion-candidate-columns {
-      font-size: 9px;
-      color: var(--text-tertiary);
-      margin-top: 2px;
-    }
-
-    .proportion-panel-actions {
-      display: flex;
-      gap: 8px;
-    }
-
-    .btn-regenerate-proportion {
-      background: var(--accent-primary);
-      color: white;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: opacity 0.15s;
-    }
-
-    .btn-regenerate-proportion:hover {
-      opacity: 0.9;
-    }
-
-    .btn-regenerate-proportion:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
     }
 
     /* File Name Options */
@@ -933,24 +998,80 @@
       opacity: 0.8;
     }
     
-    /* Scrollbar */
+    /* Scrollbar — enhanced visibility */
     ::-webkit-scrollbar {
-      width: 10px;
-      height: 10px;
+      width: 12px;
+      height: 12px;
     }
-    
+
     ::-webkit-scrollbar-track {
       background: var(--bg-secondary);
+      border-left: 1px solid var(--border-subtle);
     }
-    
+
     ::-webkit-scrollbar-thumb {
       background: var(--border-strong);
-      border-radius: 5px;
+      border-radius: 6px;
       border: 2px solid var(--bg-secondary);
+      min-height: 40px;
     }
-    
+
     ::-webkit-scrollbar-thumb:hover {
       background: var(--text-tertiary);
+    }
+
+    ::-webkit-scrollbar-thumb:active {
+      background: var(--text-secondary);
+    }
+
+    /* Preview panel scrollbar — more prominent */
+    .preview-content::-webkit-scrollbar-thumb {
+      background: var(--text-disabled);
+      border: 2px solid var(--bg-primary);
+    }
+
+    .preview-content::-webkit-scrollbar-thumb:hover {
+      background: var(--text-tertiary);
+    }
+
+    .preview-content::-webkit-scrollbar-track {
+      background: var(--bg-primary);
+      border-left: 1px solid var(--border-medium);
+    }
+
+    /* Scrollbar stepper buttons (up/down arrows) */
+    ::-webkit-scrollbar-button:single-button {
+      height: 14px;
+      width: 12px;
+      background: var(--bg-tertiary);
+      display: block;
+      border: 1px solid var(--border-medium);
+    }
+
+    ::-webkit-scrollbar-button:single-button:hover {
+      background: var(--bg-hover);
+    }
+
+    ::-webkit-scrollbar-button:single-button:vertical:decrement {
+      border-radius: 4px 4px 0 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 8 8'%3E%3Cpath d='M4 2L1 5h6z' fill='%23666'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: center;
+    }
+
+    ::-webkit-scrollbar-button:single-button:vertical:increment {
+      border-radius: 0 0 4px 4px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 8 8'%3E%3Cpath d='M4 6L1 3h6z' fill='%23666'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: center;
+    }
+
+    [data-theme="dark"] ::-webkit-scrollbar-button:single-button:vertical:decrement {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 8 8'%3E%3Cpath d='M4 2L1 5h6z' fill='%23b3b3b3'/%3E%3C/svg%3E");
+    }
+
+    [data-theme="dark"] ::-webkit-scrollbar-button:single-button:vertical:increment {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 8 8'%3E%3Cpath d='M4 6L1 3h6z' fill='%23b3b3b3'/%3E%3C/svg%3E");
     }
     
     /* Copy Success Toast */
@@ -1012,16 +1133,77 @@
 
       <div class="sidebar-section">
         <h2>Options</h2>
-        <label class="checkbox-option">
-          <input type="checkbox" id="includeLegacyFallbacks">
-          <span>Include legacy browser fallbacks</span>
-        </label>
-        <div class="option-hint">Adds @supports fallbacks for browsers without clamp()/min() support</div>
+
+        <!-- Two-column summary grid -->
+        <div class="options-grid">
+          <div class="option-col">
+            <div class="option-col-label">Output</div>
+            <div class="option-col-value" id="output-mode-summary">Fluid</div>
+          </div>
+          <div class="option-col">
+            <div class="option-col-label">Text Styles</div>
+            <div class="option-col-value" id="textstyle-summary">Off</div>
+          </div>
+        </div>
+
+        <!-- Output Mode Radio -->
+        <div style="margin-bottom: 12px;">
+          <div style="font-size: 10px; font-weight: 500; color: var(--text-tertiary); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em;">Output Mode</div>
+          <label class="filename-option">
+            <input type="radio" name="outputMode" value="fluid" checked>
+            <span>Fluid <span style="color: var(--text-tertiary);">— clamp()</span></span>
+          </label>
+          <label class="filename-option">
+            <input type="radio" name="outputMode" value="fixed">
+            <span>Fixed <span style="color: var(--text-tertiary);">— per breakpoint</span></span>
+          </label>
+        </div>
+
+        <!-- Legacy Fallbacks (only relevant for Fluid) — collapsible -->
+        <div id="legacy-fallback-option" class="option-collapsible">
+          <label class="checkbox-option">
+            <input type="checkbox" id="includeLegacyFallbacks">
+            <span>Include legacy browser fallbacks</span>
+          </label>
+          <div class="option-hint">Adds @supports fallbacks for browsers without clamp()/min() support</div>
+        </div>
       </div>
 
       <div class="sidebar-divider"></div>
 
-      <div class="output-info">
+      <!-- Text Styles Section -->
+      <div class="sidebar-section" id="textstyle-section">
+        <h2>Text Styles</h2>
+        <div style="margin-bottom: 8px;">
+          <label class="checkbox-option">
+            <input type="checkbox" id="includeTextStyles">
+            <span>Include text styles in output</span>
+          </label>
+        </div>
+        <div id="textstyle-options" class="option-collapsible collapsed">
+          <div style="font-size: 10px; font-weight: 500; color: var(--text-tertiary); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em;">Format</div>
+          <label class="filename-option">
+            <input type="radio" name="textStyleFormat" value="scss-mixin" checked>
+            <span>SCSS Mixins <span style="color: var(--text-tertiary);">— @mixin</span></span>
+          </label>
+          <label class="filename-option">
+            <input type="radio" name="textStyleFormat" value="css-class">
+            <span>CSS Classes <span style="color: var(--text-tertiary);">— .class</span></span>
+          </label>
+          <label class="filename-option">
+            <input type="radio" name="textStyleFormat" value="css-vars">
+            <span>CSS Variables <span style="color: var(--text-tertiary);">— --var</span></span>
+          </label>
+        </div>
+        <div class="stat-card" id="textstyle-count-card" style="margin-top: 8px; display: none;">
+          <div class="stat-value" id="textstyle-count">0</div>
+          <div class="stat-label">Text Styles</div>
+        </div>
+      </div>
+
+      <div class="sidebar-divider"></div>
+
+      <div class="output-info" id="output-info">
         <h2>Output Format</h2>
         <div class="info-item">
           <span class="info-icon">📐</span>
@@ -1083,37 +1265,67 @@
         <div class="preview-stats" id="preview-stats"></div>
       </div>
 
-      <!-- Viewport Candidates Panel - shown when viewport-related variables are detected -->
-      <div class="viewport-panel" id="viewport-panel" style="display: none;">
-        <div class="viewport-panel-header">
-          <span class="viewport-panel-icon">🖥️</span>
-          <h3>Viewport-Relative Variables Detected</h3>
+      <!-- Unified Detection Panel - shown when any special variables are detected -->
+      <div class="detection-panel" id="detection-panel" style="display: none;">
+        <div class="detection-panel-header">
+          <span>🔍</span>
+          <h3>Edge-Case Detection</h3>
+          <span class="detection-badge" id="detection-total-badge">0</span>
         </div>
-        <div class="viewport-panel-description">
-          The following variables contain "viewport" in their name or description.
-          Check the ones that should use <code>min(100vw, max)</code> instead of <code>clamp()</code> interpolation.
-        </div>
-        <div class="viewport-candidate-list" id="viewport-candidate-list"></div>
-        <div class="viewport-panel-actions">
-          <button class="btn-regenerate" id="btn-regenerate-viewport">Apply & Regenerate</button>
-          <button class="btn-select-all" id="btn-select-none">Deselect All</button>
-        </div>
-      </div>
 
-      <!-- Proportion Candidates Panel - shown when grid proportion variables are detected -->
-      <div class="proportion-panel" id="proportion-panel" style="display: none;">
-        <div class="proportion-panel-header">
-          <span class="proportion-panel-icon">📐</span>
-          <h3>Grid Proportion Variables Detected</h3>
+        <!-- Viewport Section -->
+        <div class="detection-section" data-type="viewport" id="detection-viewport" style="display: none;">
+          <div class="detection-section-header" onclick="toggleDetectionSection('detection-viewport')">
+            <span class="detection-section-icon">🖥️</span>
+            <span class="detection-section-title">Viewport-Relative</span>
+            <span class="detection-section-count" id="viewport-section-count">0</span>
+            <button class="detection-section-toggle" id="btn-toggle-viewport" onclick="event.stopPropagation(); toggleAllViewportSelections();">Deselect All</button>
+            <span class="detection-section-chevron">▼</span>
+          </div>
+          <div class="detection-section-body">
+            <div class="detection-section-description">
+              Variables with "viewport" in their name — use <code>min(100vw, max)</code> instead of <code>clamp()</code>
+            </div>
+            <div class="detection-candidate-list" id="viewport-candidate-list"></div>
+          </div>
         </div>
-        <div class="proportion-panel-description">
-          The following variables appear to be grid proportions (whole, half, third, etc.).
-          Check the ones that should output as <code>flex</code>/<code>fr</code> values instead of pixel-based <code>clamp()</code>.
+
+        <!-- Proportion Section -->
+        <div class="detection-section" data-type="proportion" id="detection-proportion" style="display: none;">
+          <div class="detection-section-header" onclick="toggleDetectionSection('detection-proportion')">
+            <span class="detection-section-icon">📐</span>
+            <span class="detection-section-title">Grid Proportions</span>
+            <span class="detection-section-count" id="proportion-section-count">0</span>
+            <button class="detection-section-toggle" id="btn-toggle-proportion" onclick="event.stopPropagation(); toggleAllProportionSelections();">Deselect All</button>
+            <span class="detection-section-chevron">▼</span>
+          </div>
+          <div class="detection-section-body">
+            <div class="detection-section-description">
+              Grid proportions (whole, half, third, etc.) — output as <code>flex</code>/<code>fr</code> values
+            </div>
+            <div class="detection-candidate-list" id="proportion-candidate-list"></div>
+          </div>
         </div>
-        <div class="proportion-candidate-list" id="proportion-candidate-list"></div>
-        <div class="proportion-panel-actions">
-          <button class="btn-regenerate-proportion" id="btn-regenerate-proportion">Apply & Regenerate</button>
-          <button class="btn-select-all" id="btn-select-none-proportion">Deselect All</button>
+
+        <!-- Non-Linear Section -->
+        <div class="detection-section" data-type="nonlinear" id="detection-nonlinear" style="display: none;">
+          <div class="detection-section-header" onclick="toggleDetectionSection('detection-nonlinear')">
+            <span class="detection-section-icon">📈</span>
+            <span class="detection-section-title">Non-Linear Scaling</span>
+            <span class="detection-section-count" id="nonlinear-section-count">0</span>
+            <button class="detection-section-toggle" id="btn-toggle-nonlinear" onclick="event.stopPropagation(); toggleAllNonLinearSelections();">Disable All</button>
+            <span class="detection-section-chevron">▼</span>
+          </div>
+          <div class="detection-section-body">
+            <div class="detection-section-description">
+              Intermediate breakpoint values deviate from linear — uses <code>piecewise clamp()</code> (3 segments)
+            </div>
+            <div class="detection-candidate-list" id="nonlinear-candidate-list"></div>
+          </div>
+        </div>
+
+        <div class="detection-panel-footer">
+          <span class="detection-summary" id="detection-summary">Adjust selections above, then regenerate</span>
         </div>
       </div>
 
@@ -1165,10 +1377,23 @@
     // Track proportion candidates and user selections
     let proportionCandidates = [];
     let proportionSelections = {}; // { cssName: boolean }
+    // Track non-linear candidates and user selections
+    let nonLinearCandidates = [];
+    let nonLinearSelections = {}; // { cssName: boolean }
     // Search state
     let searchMatches = [];
     let currentMatchIndex = -1;
     let lastSearchTerm = '';
+
+    // ============================================
+    // DETECTION PANEL ACCORDION
+    // ============================================
+    function toggleDetectionSection(sectionId) {
+      const section = document.getElementById(sectionId);
+      if (section) {
+        section.classList.toggle('section-collapsed');
+      }
+    }
 
     // ============================================
     // UI ELEMENTS
@@ -1186,17 +1411,20 @@
     const customFilenameEl = document.getElementById('custom-filename');
     const toastEl = document.getElementById('toast');
 
-    // Viewport panel elements
-    const viewportPanelEl = document.getElementById('viewport-panel');
+    // Unified detection panel elements
+    const detectionPanelEl = document.getElementById('detection-panel');
+    const detectionTotalBadge = document.getElementById('detection-total-badge');
+    const detectionSummaryEl = document.getElementById('detection-summary');
+    const viewportSectionEl = document.getElementById('detection-viewport');
+    const proportionSectionEl = document.getElementById('detection-proportion');
+    const nonLinearSectionEl = document.getElementById('detection-nonlinear');
     const viewportCandidateListEl = document.getElementById('viewport-candidate-list');
-    const btnRegenerateViewport = document.getElementById('btn-regenerate-viewport');
-    const btnSelectNone = document.getElementById('btn-select-none');
-
-    // Proportion panel elements
-    const proportionPanelEl = document.getElementById('proportion-panel');
     const proportionCandidateListEl = document.getElementById('proportion-candidate-list');
-    const btnRegenerateProportion = document.getElementById('btn-regenerate-proportion');
-    const btnSelectNoneProportion = document.getElementById('btn-select-none-proportion');
+    const nonLinearCandidateListEl = document.getElementById('nonlinear-candidate-list');
+
+    // Text style elements
+    const includeTextStylesCheckbox = document.getElementById('includeTextStyles');
+    const textStyleOptionsEl = document.getElementById('textstyle-options');
 
     // Search elements
     const searchInputEl = document.getElementById('preview-search');
@@ -1217,13 +1445,27 @@
     btnDownload.addEventListener('click', downloadCSS);
     themeToggle.addEventListener('click', toggleTheme);
 
-    // Viewport panel handlers
-    btnRegenerateViewport.addEventListener('click', regenerateWithViewportSelections);
-    btnSelectNone.addEventListener('click', toggleAllViewportSelections);
+    // No separate panel handlers needed — Generate CSS button handles all regeneration
 
-    // Proportion panel handlers
-    btnRegenerateProportion.addEventListener('click', regenerateWithProportionSelections);
-    btnSelectNoneProportion.addEventListener('click', toggleAllProportionSelections);
+    // Output mode handlers
+    document.querySelectorAll('input[name="outputMode"]').forEach(radio => {
+      radio.addEventListener('change', handleOutputModeChange);
+    });
+
+    // Text style checkbox handler — smooth transition
+    includeTextStylesCheckbox.addEventListener('change', function() {
+      if (this.checked) {
+        textStyleOptionsEl.classList.remove('collapsed');
+      } else {
+        textStyleOptionsEl.classList.add('collapsed');
+      }
+      updateSummaryGrid();
+    });
+
+    // Text style format change handler — update summary grid
+    document.querySelectorAll('input[name="textStyleFormat"]').forEach(radio => {
+      radio.addEventListener('change', updateSummaryGrid);
+    });
 
     // Filename mode handlers
     document.querySelectorAll('input[name="filenameMode"]').forEach(radio => {
@@ -1275,14 +1517,18 @@
     // ============================================
     function getOptions(includeOverrides = false) {
       var legacyCheckbox = document.getElementById('includeLegacyFallbacks');
+      var outputModeRadio = document.querySelector('input[name="outputMode"]:checked');
+      var textStyleFormatRadio = document.querySelector('input[name="textStyleFormat"]:checked');
       var options = {
-        outputMode: 'fluid',
+        outputMode: outputModeRadio ? outputModeRadio.value : 'fluid',
         aliasMode: 'preserved',
         darkModeOutput: 'both', // Outputs both prefers-color-scheme AND [data-theme="dark"]
         includeTimestamp: true,
         includeIds: false,
         colorFormat: 'hex',
-        includeLegacyFallbacks: legacyCheckbox ? legacyCheckbox.checked : false
+        includeLegacyFallbacks: legacyCheckbox ? legacyCheckbox.checked : false,
+        includeTextStyles: includeTextStylesCheckbox ? includeTextStylesCheckbox.checked : false,
+        textStyleFormat: textStyleFormatRadio ? textStyleFormatRadio.value : 'scss-mixin'
       };
 
       // Include viewport selections if requested
@@ -1303,6 +1549,15 @@
           }
         }
         options.proportionOverrides = selectedProportionVars;
+
+        // Include non-linear selections
+        var selectedNonLinearVars = [];
+        for (var cssName in nonLinearSelections) {
+          if (nonLinearSelections[cssName]) {
+            selectedNonLinearVars.push(cssName);
+          }
+        }
+        options.nonLinearOverrides = selectedNonLinearVars;
       }
 
       return options;
@@ -1315,11 +1570,13 @@
       btnGenerate.disabled = true;
       btnGenerate.textContent = 'Generating...';
       previewContentEl.innerHTML = '<div class="loading"><div class="spinner"></div><span>Generating CSS...</span></div>';
-      
+
+      // Always include overrides — the Generate CSS button serves as both
+      // initial generate and regenerate after detection panel changes
       parent.postMessage({
         pluginMessage: {
           type: 'generate-css',
-          options: getOptions()
+          options: getOptions(true)
         }
       }, '*');
     }
@@ -1428,7 +1685,7 @@
       const highlighted = css
         .replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="syntax-comment">$1</span>')
         .replace(/(--[a-z0-9-]+)/gi, '<span class="syntax-property">$1</span>')
-        .replace(/(:root|@media|@supports)/g, '<span class="syntax-keyword">$1</span>')
+        .replace(/(:root|@media|@supports|@mixin)/g, '<span class="syntax-keyword">$1</span>')
         .replace(/(\d+(?:\.\d+)?(?:px|rem|vw|%)?)/g, '<span class="syntax-number">$1</span>')
         .replace(/(clamp|calc|var|min)/g, '<span class="syntax-function">$1</span>')
         .replace(/(#[a-f0-9]{3,8})/gi, '<span class="syntax-color">$1</span>');
@@ -1459,25 +1716,52 @@
         errorsPanelEl.style.display = 'none';
       }
 
-      // Show viewport candidates panel if any detected
-      if (stats.viewportCandidates && stats.viewportCandidates.length > 0) {
+      // Unified detection panel — show sections based on what was detected
+      var hasViewport = stats.viewportCandidates && stats.viewportCandidates.length > 0;
+      var hasProportion = stats.proportionCandidates && stats.proportionCandidates.length > 0;
+      var hasNonLinear = stats.nonLinearCandidates && stats.nonLinearCandidates.length > 0;
+      var hasAnyDetection = hasViewport || hasProportion || hasNonLinear;
+
+      if (hasViewport) {
         viewportCandidates = stats.viewportCandidates;
         renderViewportCandidates();
-        viewportPanelEl.style.display = 'block';
+        viewportSectionEl.style.display = 'block';
       } else {
-        viewportPanelEl.style.display = 'none';
+        viewportSectionEl.style.display = 'none';
         viewportCandidates = [];
       }
 
-      // Show proportion candidates panel if any detected
-      if (stats.proportionCandidates && stats.proportionCandidates.length > 0) {
+      if (hasProportion) {
         proportionCandidates = stats.proportionCandidates;
         renderProportionCandidates();
-        proportionPanelEl.style.display = 'block';
+        proportionSectionEl.style.display = 'block';
       } else {
-        proportionPanelEl.style.display = 'none';
+        proportionSectionEl.style.display = 'none';
         proportionCandidates = [];
       }
+
+      if (hasNonLinear) {
+        nonLinearCandidates = stats.nonLinearCandidates;
+        renderNonLinearCandidates();
+        nonLinearSectionEl.style.display = 'block';
+      } else {
+        nonLinearSectionEl.style.display = 'none';
+        nonLinearCandidates = [];
+      }
+
+      // Show/hide the unified panel and update badge
+      detectionPanelEl.style.display = hasAnyDetection ? 'block' : 'none';
+      var totalDetected = (viewportCandidates.length || 0) + (proportionCandidates.length || 0) + (nonLinearCandidates.length || 0);
+      detectionTotalBadge.textContent = totalDetected;
+      updateDetectionSummary();
+
+      // Update stats line with text style count if present
+      var statsText = `${stats.collections} collections · ${stats.variables} variables`;
+      if (stats.textStyleCount > 0) {
+        statsText += ` · ${stats.textStyleCount} text styles`;
+      }
+      statsText += ` · ${(css.length / 1024).toFixed(1)} KB`;
+      previewStatsEl.textContent = statsText;
     }
 
     // ============================================
@@ -1486,7 +1770,6 @@
     function renderViewportCandidates() {
       let html = '';
       for (const candidate of viewportCandidates) {
-        // Initialize selection state if not set (default to checked - detected variables are selected by default)
         if (viewportSelections[candidate.cssName] === undefined) {
           viewportSelections[candidate.cssName] = true;
         }
@@ -1494,56 +1777,43 @@
         const reasonText = candidate.reason === 'name' ? 'Found in variable name' : 'Found in description';
 
         html += `
-          <label class="viewport-candidate-item">
+          <label class="detection-candidate-item">
             <input type="checkbox" ${checked} data-css-name="${escapeHtml(candidate.cssName)}" onchange="updateViewportSelection(this)">
-            <div class="viewport-candidate-info">
-              <div class="viewport-candidate-name">${escapeHtml(candidate.cssName)}</div>
-              <div class="viewport-candidate-reason">${reasonText}: "${escapeHtml(candidate.originalName)}"</div>
+            <div class="detection-candidate-info">
+              <div class="detection-candidate-name">${escapeHtml(candidate.cssName)}</div>
+              <div class="detection-candidate-meta">${reasonText}</div>
             </div>
           </label>
         `;
       }
       viewportCandidateListEl.innerHTML = html;
-      updateSelectButtonText();
+      document.getElementById('viewport-section-count').textContent = viewportCandidates.length;
+      updateViewportToggleText();
     }
 
     function updateViewportSelection(checkbox) {
       const cssName = checkbox.dataset.cssName;
       viewportSelections[cssName] = checkbox.checked;
-      updateSelectButtonText();
+      updateViewportToggleText();
+      updateDetectionSummary();
     }
 
     function toggleAllViewportSelections() {
-      // Check if any are selected
       const anySelected = Object.values(viewportSelections).some(v => v);
-      // Toggle: if any selected, deselect all; otherwise select all
       const newValue = !anySelected;
-
       for (const candidate of viewportCandidates) {
         viewportSelections[candidate.cssName] = newValue;
       }
       renderViewportCandidates();
+      updateDetectionSummary();
     }
 
-    function updateSelectButtonText() {
+    function updateViewportToggleText() {
+      const btn = document.getElementById('btn-toggle-viewport');
       const anySelected = Object.values(viewportSelections).some(v => v);
-      btnSelectNone.textContent = anySelected ? 'Deselect All' : 'Select All';
+      btn.textContent = anySelected ? 'Deselect All' : 'Select All';
     }
 
-    function regenerateWithViewportSelections() {
-      btnRegenerateViewport.disabled = true;
-      btnRegenerateViewport.textContent = 'Regenerating...';
-      btnGenerate.disabled = true;
-
-      parent.postMessage({
-        pluginMessage: {
-          type: 'generate-css',
-          options: getOptions(true) // Include viewport overrides
-        }
-      }, '*');
-    }
-
-    // Make function available globally for inline onclick
     window.updateViewportSelection = updateViewportSelection;
 
     // ============================================
@@ -1552,64 +1822,229 @@
     function renderProportionCandidates() {
       let html = '';
       for (const candidate of proportionCandidates) {
-        // Initialize selection state if not set (default to checked - detected variables are selected by default)
         if (proportionSelections[candidate.cssName] === undefined) {
           proportionSelections[candidate.cssName] = true;
         }
         const checked = proportionSelections[candidate.cssName] ? 'checked' : '';
 
         html += `
-          <label class="proportion-candidate-item">
+          <label class="detection-candidate-item">
             <input type="checkbox" ${checked} data-css-name="${escapeHtml(candidate.cssName)}" onchange="updateProportionSelection(this)">
-            <div class="proportion-candidate-info">
-              <div class="proportion-candidate-name">${escapeHtml(candidate.cssName)}</div>
-              <div class="proportion-candidate-columns">${candidate.columnCount}/12 columns → flex: ${candidate.columnCount}; / ${candidate.columnCount}fr</div>
+            <div class="detection-candidate-info">
+              <div class="detection-candidate-name">${escapeHtml(candidate.cssName)}</div>
+              <div class="detection-candidate-meta">${candidate.columnCount}/12 columns → flex: ${candidate.columnCount}; / ${candidate.columnCount}fr</div>
             </div>
           </label>
         `;
       }
       proportionCandidateListEl.innerHTML = html;
-      updateProportionSelectButtonText();
+      document.getElementById('proportion-section-count').textContent = proportionCandidates.length;
+      updateProportionToggleText();
     }
 
     function updateProportionSelection(checkbox) {
       const cssName = checkbox.dataset.cssName;
       proportionSelections[cssName] = checkbox.checked;
-      updateProportionSelectButtonText();
+      updateProportionToggleText();
+      updateDetectionSummary();
     }
 
     function toggleAllProportionSelections() {
-      // Check if any are selected
       const anySelected = Object.values(proportionSelections).some(v => v);
-      // Toggle: if any selected, deselect all; otherwise select all
       const newValue = !anySelected;
-
       for (const candidate of proportionCandidates) {
         proportionSelections[candidate.cssName] = newValue;
       }
       renderProportionCandidates();
+      updateDetectionSummary();
     }
 
-    function updateProportionSelectButtonText() {
+    function updateProportionToggleText() {
+      const btn = document.getElementById('btn-toggle-proportion');
       const anySelected = Object.values(proportionSelections).some(v => v);
-      btnSelectNoneProportion.textContent = anySelected ? 'Deselect All' : 'Select All';
+      btn.textContent = anySelected ? 'Deselect All' : 'Select All';
     }
 
-    function regenerateWithProportionSelections() {
-      btnRegenerateProportion.disabled = true;
-      btnRegenerateProportion.textContent = 'Regenerating...';
-      btnGenerate.disabled = true;
-
-      parent.postMessage({
-        pluginMessage: {
-          type: 'generate-css',
-          options: getOptions(true) // Include all overrides
-        }
-      }, '*');
-    }
-
-    // Make function available globally for inline onclick
     window.updateProportionSelection = updateProportionSelection;
+
+    // ============================================
+    // NON-LINEAR CANDIDATES PANEL
+    // ============================================
+    function renderNonLinearCandidates() {
+      let html = '';
+      for (const candidate of nonLinearCandidates) {
+        if (nonLinearSelections[candidate.cssName] === undefined) {
+          nonLinearSelections[candidate.cssName] = true;
+        }
+        const checked = nonLinearSelections[candidate.cssName] ? 'checked' : '';
+        const pctL = Math.round(candidate.deviationL * 100);
+        const pctT = Math.round(candidate.deviationT * 100);
+        const maxPct = Math.round(candidate.maxDeviation * 100);
+
+        // Mini deviation graph: 4 bars showing Desktop, Laptop, Tablet, Mobile
+        // Heights represent the deviation from expected linear values
+        // Desktop and Mobile are the anchors (100%), Laptop and Tablet show actual position
+        const laptopH = Math.max(2, Math.min(18, Math.round(18 * (1 - candidate.deviationL))));
+        const tabletH = Math.max(2, Math.min(18, Math.round(18 * (1 - candidate.deviationT))));
+
+        html += `
+          <label class="detection-candidate-item">
+            <input type="checkbox" ${checked} data-css-name="${escapeHtml(candidate.cssName)}" onchange="updateNonLinearSelection(this)">
+            <div class="detection-candidate-info">
+              <div class="detection-candidate-name">${escapeHtml(candidate.cssName)}</div>
+              <div class="detection-candidate-meta">${maxPct}% deviation (L: ${pctL}%, T: ${pctT}%)</div>
+            </div>
+            <div class="deviation-graph" title="Desktop → Laptop (${pctL}% off) → Tablet (${pctT}% off) → Mobile">
+              <div class="deviation-bar bar-desktop" style="height: 18px;"></div>
+              <div class="deviation-bar bar-expected" style="height: 14px;" title="Expected linear"></div>
+              <div class="deviation-bar bar-laptop" style="height: ${laptopH}px;" title="Laptop: ${pctL}% deviation"></div>
+              <div class="deviation-bar bar-expected" style="height: 8px;" title="Expected linear"></div>
+              <div class="deviation-bar bar-tablet" style="height: ${tabletH}px;" title="Tablet: ${pctT}% deviation"></div>
+              <div class="deviation-bar bar-expected" style="height: 4px;" title="Expected linear"></div>
+              <div class="deviation-bar bar-mobile" style="height: 2px;"></div>
+            </div>
+          </label>
+        `;
+      }
+      nonLinearCandidateListEl.innerHTML = html;
+      document.getElementById('nonlinear-section-count').textContent = nonLinearCandidates.length;
+      updateNonLinearToggleText();
+    }
+
+    function updateNonLinearSelection(checkbox) {
+      const cssName = checkbox.dataset.cssName;
+      nonLinearSelections[cssName] = checkbox.checked;
+      updateNonLinearToggleText();
+      updateDetectionSummary();
+    }
+
+    function toggleAllNonLinearSelections() {
+      const anySelected = Object.values(nonLinearSelections).some(v => v);
+      const newValue = !anySelected;
+      for (const candidate of nonLinearCandidates) {
+        nonLinearSelections[candidate.cssName] = newValue;
+      }
+      renderNonLinearCandidates();
+      updateDetectionSummary();
+    }
+
+    function updateNonLinearToggleText() {
+      const btn = document.getElementById('btn-toggle-nonlinear');
+      const anySelected = Object.values(nonLinearSelections).some(v => v);
+      btn.textContent = anySelected ? 'Disable All' : 'Enable All';
+    }
+
+    // Summary of all detection selections
+    function updateDetectionSummary() {
+      const vCount = Object.values(viewportSelections).filter(v => v).length;
+      const pCount = Object.values(proportionSelections).filter(v => v).length;
+      const nCount = Object.values(nonLinearSelections).filter(v => v).length;
+      const parts = [];
+      if (vCount > 0) parts.push(vCount + ' viewport');
+      if (pCount > 0) parts.push(pCount + ' proportion');
+      if (nCount > 0) parts.push(nCount + ' non-linear');
+
+      if (parts.length > 0) {
+        detectionSummaryEl.textContent = parts.join(', ') + ' selected — click Generate CSS to apply';
+      } else {
+        detectionSummaryEl.textContent = 'No special handling selected — standard output';
+      }
+    }
+
+    window.updateNonLinearSelection = updateNonLinearSelection;
+
+    // ============================================
+    // OUTPUT MODE CHANGE
+    // ============================================
+    function handleOutputModeChange() {
+      var mode = document.querySelector('input[name="outputMode"]:checked').value;
+
+      // Smooth show/hide legacy fallback option (only relevant for fluid)
+      var legacyOption = document.getElementById('legacy-fallback-option');
+      if (legacyOption) {
+        if (mode === 'fluid') {
+          legacyOption.classList.remove('collapsed');
+        } else {
+          legacyOption.classList.add('collapsed');
+        }
+      }
+
+      // Hide detection panel when in fixed mode (not relevant without clamp)
+      if (mode === 'fixed') {
+        detectionPanelEl.style.display = 'none';
+      }
+
+      // Update the Output Format info section
+      updateOutputFormatInfo(mode);
+      updateSummaryGrid();
+    }
+
+    // Update the two-column summary grid in the sidebar
+    function updateSummaryGrid() {
+      var mode = document.querySelector('input[name="outputMode"]:checked').value;
+      var outputSummary = document.getElementById('output-mode-summary');
+      var textstyleSummary = document.getElementById('textstyle-summary');
+
+      if (outputSummary) {
+        outputSummary.textContent = mode === 'fluid' ? 'Fluid' : 'Fixed';
+      }
+      if (textstyleSummary) {
+        if (includeTextStylesCheckbox && includeTextStylesCheckbox.checked) {
+          var format = document.querySelector('input[name="textStyleFormat"]:checked');
+          var formatName = format ? { 'scss-mixin': 'SCSS', 'css-class': 'CSS Class', 'css-vars': 'CSS Vars' }[format.value] || 'On' : 'On';
+          textstyleSummary.textContent = formatName;
+        } else {
+          textstyleSummary.textContent = 'Off';
+        }
+      }
+    }
+
+    function updateOutputFormatInfo(mode) {
+      var infoSection = document.getElementById('output-info');
+      if (!infoSection) return;
+
+      if (mode === 'fixed') {
+        infoSection.innerHTML = `
+          <h2>Output Format</h2>
+          <div class="info-item">
+            <span class="info-icon">📏</span>
+            <span class="info-text"><strong>Fixed values</strong> from Figma, output as-is per breakpoint</span>
+          </div>
+          <div class="info-item">
+            <span class="info-icon">🔗</span>
+            <span class="info-text"><strong>Preserved aliases</strong> using var() references</span>
+          </div>
+          <div class="info-item">
+            <span class="info-icon">🌙</span>
+            <span class="info-text"><strong>Theme modes</strong> with prefers-color-scheme and [data-theme]</span>
+          </div>
+          <div class="info-item">
+            <span class="info-icon">📱</span>
+            <span class="info-text"><strong>@media queries</strong> at 1679px, 1365px, 839px breakpoints</span>
+          </div>
+        `;
+      } else {
+        infoSection.innerHTML = `
+          <h2>Output Format</h2>
+          <div class="info-item">
+            <span class="info-icon">📐</span>
+            <span class="info-text"><strong>Fluid scaling</strong> with clamp() for responsive variables</span>
+          </div>
+          <div class="info-item">
+            <span class="info-icon">🔗</span>
+            <span class="info-text"><strong>Preserved aliases</strong> using var() references to maintain the token chain</span>
+          </div>
+          <div class="info-item">
+            <span class="info-icon">🌙</span>
+            <span class="info-text"><strong>Theme modes</strong> exported with prefers-color-scheme and [data-theme] selectors</span>
+          </div>
+          <div class="info-item">
+            <span class="info-icon">📱</span>
+            <span class="info-text"><strong>Responsive aliases</strong> with media queries for mode-specific var() references</span>
+          </div>
+        `;
+      }
+    }
 
     // ============================================
     // SEARCH FUNCTIONALITY
@@ -1712,7 +2147,7 @@
       const highlighted = generatedCSS
         .replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="syntax-comment">$1</span>')
         .replace(/(--[a-z0-9-]+)/gi, '<span class="syntax-property">$1</span>')
-        .replace(/(:root|@media|@supports)/g, '<span class="syntax-keyword">$1</span>')
+        .replace(/(:root|@media|@supports|@mixin)/g, '<span class="syntax-keyword">$1</span>')
         .replace(/(\d+(?:\.\d+)?(?:px|rem|vw|%)?)/g, '<span class="syntax-number">$1</span>')
         .replace(/(clamp|calc|var|min)/g, '<span class="syntax-function">$1</span>')
         .replace(/(#[a-f0-9]{3,8})/gi, '<span class="syntax-color">$1</span>');
@@ -1756,10 +2191,16 @@
     function handleSearchKeydown(e) {
       if (e.key === 'Enter') {
         e.preventDefault();
-        if (e.shiftKey) {
-          goToPrevMatch();
-        } else {
-          goToNextMatch();
+        // If no matches yet (debounce pending), trigger search immediately first
+        if (searchMatches.length === 0 && searchInputEl.value.trim().length > 0) {
+          performSearch();
+        }
+        if (searchMatches.length > 0) {
+          if (e.shiftKey) {
+            goToPrevMatch();
+          } else {
+            goToNextMatch();
+          }
         }
       } else if (e.key === 'Escape') {
         searchInputEl.value = '';
@@ -1799,21 +2240,19 @@
         variableCountEl.textContent = msg.totalVariables;
         footerStatsEl.textContent = `${msg.totalVariables} variables found`;
         renderCollections();
+      } else if (msg.type === 'textstyles-scanned') {
+        var countCard = document.getElementById('textstyle-count-card');
+        var countEl = document.getElementById('textstyle-count');
+        if (msg.count > 0) {
+          countEl.textContent = msg.count;
+          countCard.style.display = 'block';
+        }
       } else if (msg.type === 'css-generated') {
         renderPreview(msg.output.css, msg.output.stats);
-        // Reset regenerate button states
-        btnRegenerateViewport.disabled = false;
-        btnRegenerateViewport.textContent = 'Apply & Regenerate';
-        btnRegenerateProportion.disabled = false;
-        btnRegenerateProportion.textContent = 'Apply & Regenerate';
       } else if (msg.type === 'error') {
         previewContentEl.innerHTML = `<div class="preview-placeholder" style="color: var(--error-text);">Error: ${escapeHtml(msg.message)}</div>`;
         btnGenerate.disabled = false;
         btnGenerate.textContent = 'Generate CSS';
-        btnRegenerateViewport.disabled = false;
-        btnRegenerateViewport.textContent = 'Apply & Regenerate';
-        btnRegenerateProportion.disabled = false;
-        btnRegenerateProportion.textContent = 'Apply & Regenerate';
       }
     };
     
@@ -1855,6 +2294,7 @@
     // ============================================
     updateFilenamePreview();
     parent.postMessage({ pluginMessage: { type: 'scan-collections' } }, '*');
+    parent.postMessage({ pluginMessage: { type: 'scan-textstyles' } }, '*');
   </script>
 </body>
 </html>
