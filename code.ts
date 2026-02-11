@@ -1091,13 +1091,34 @@ var UNITLESS_KEYWORDS: string[] = [
   'ratio', 'columns', 'rows', 'count'
 ];
 
+// Check if a keyword appears as a complete segment in a name, not as a substring
+// within a larger word. Segments are bounded by separators: - / . space or string edges.
+// e.g., "order" matches "flex-order" and "z-order" but NOT "border-width"
+// "ratio" matches "aspect-ratio" but NOT "decoration"
+// "count" matches "column-count" but NOT "counter"
+function matchesAsSegment(text: string, keyword: string): boolean {
+  var pos = 0;
+  while (pos <= text.length - keyword.length) {
+    var idx = text.indexOf(keyword, pos);
+    if (idx === -1) return false;
+    var before = idx === 0 || '-/. '.indexOf(text.charAt(idx - 1)) !== -1;
+    var afterIdx = idx + keyword.length;
+    var after = afterIdx === text.length || '-/. '.indexOf(text.charAt(afterIdx)) !== -1;
+    if (before && after) return true;
+    pos = idx + 1;
+  }
+  return false;
+}
+
 // Check if a FLOAT variable should be exported without a unit (unitless number)
 // Detection is by naming convention: if the variable name contains a unitless keyword
+// as a complete segment (bounded by hyphens, slashes, dots, spaces, or string edges).
+// This prevents false positives like "border" matching "order" or "decoration" matching "ratio".
 function isUnitless(variable: VariableInfo): boolean {
   var nameLower = variable.name.toLowerCase();
   var cssNameLower = variable.cssName.toLowerCase();
   for (var i = 0; i < UNITLESS_KEYWORDS.length; i++) {
-    if (nameLower.indexOf(UNITLESS_KEYWORDS[i]) !== -1 || cssNameLower.indexOf(UNITLESS_KEYWORDS[i]) !== -1) {
+    if (matchesAsSegment(nameLower, UNITLESS_KEYWORDS[i]) || matchesAsSegment(cssNameLower, UNITLESS_KEYWORDS[i])) {
       return true;
     }
   }

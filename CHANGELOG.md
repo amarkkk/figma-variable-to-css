@@ -20,6 +20,10 @@ Text style export was outputting `var(--typo-type-size-fixed-3, 20px)` with stat
 
 All CSS numeric output is now capped at 2 decimal places via `round(value, 2)`. Previously, values like `32.6446624375525px` could appear in the output. Now outputs `32.64px`.
 
+#### Unitless keyword matching uses segment boundaries
+
+The `isUnitless()` function previously used naive `indexOf` substring matching, causing false positives. For example, `border-width` was output as unitless (`1` instead of `1px`) because `border` contains the substring `order`. Now uses segment-boundary matching — keywords must appear as complete segments separated by hyphens, slashes, dots, spaces, or string edges. `order` matches `flex-order` but not `border-width`; `ratio` matches `aspect-ratio` but not `decoration`; `count` matches `column-count` but not `counter`.
+
 ### UX Improvements
 
 #### Unified detection panel (merged 3 panels into 1)
