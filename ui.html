@@ -317,6 +317,38 @@
       border-radius: 6px;
       background: var(--bg-secondary);
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .detection-panel-body {
+      overflow-y: auto;
+      max-height: 300px;
+      flex: 1;
+    }
+
+    .detection-panel-resize-handle {
+      height: 6px;
+      cursor: ns-resize;
+      background: var(--bg-tertiary);
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .detection-panel-resize-handle::after {
+      content: '';
+      width: 24px;
+      height: 2px;
+      border-radius: 1px;
+      background: var(--border-strong);
+      opacity: 0.5;
+    }
+
+    .detection-panel-resize-handle:hover::after {
+      opacity: 0.8;
     }
 
     .detection-panel-header {
@@ -525,6 +557,146 @@
 
     [data-theme="dark"] .deviation-bar.bar-laptop { background: #a78bfa; }
     [data-theme="dark"] .deviation-bar.bar-tablet { background: #a78bfa; }
+
+    /* Non-linear deviation hover overlay */
+    .deviation-overlay {
+      position: fixed;
+      z-index: 9999;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-strong);
+      border-radius: 6px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+      padding: 12px;
+      width: 300px;
+      pointer-events: none;
+    }
+
+    .deviation-overlay-header {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .deviation-overlay-chart {
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 16px;
+      height: 90px;
+      padding: 0 8px;
+      margin-bottom: 8px;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 4px;
+    }
+
+    .overlay-bar-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .overlay-bar-group-bars {
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      height: 70px;
+    }
+
+    .overlay-bar {
+      width: 14px;
+      border-radius: 2px 2px 0 0;
+      position: relative;
+    }
+
+    .overlay-bar.bar-actual { background: #7c3aed; }
+    .overlay-bar.bar-expected { background: var(--border-strong); opacity: 0.45; }
+    .overlay-bar.bar-anchor { background: var(--text-disabled); }
+    [data-theme="dark"] .overlay-bar.bar-actual { background: #a78bfa; }
+
+    .overlay-bar-value {
+      font-size: 8px;
+      color: var(--text-tertiary);
+      text-align: center;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .overlay-bar-label {
+      font-size: 9px;
+      color: var(--text-tertiary);
+      text-align: center;
+      margin-top: 2px;
+    }
+
+    .deviation-overlay-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 10px;
+    }
+
+    .deviation-overlay-table th {
+      text-align: left;
+      font-weight: 500;
+      color: var(--text-tertiary);
+      padding: 3px 4px;
+      border-bottom: 1px solid var(--border-medium);
+    }
+
+    .deviation-overlay-table td {
+      padding: 3px 4px;
+      color: var(--text-secondary);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .deviation-overlay-table tr:not(:last-child) td {
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .deviation-overlay-table .deviation-cell {
+      font-weight: 500;
+    }
+
+    .deviation-overlay-table .deviation-cell.warn {
+      color: #dc2626;
+    }
+
+    .deviation-overlay-table .deviation-cell.moderate {
+      color: #d97706;
+    }
+
+    .deviation-overlay-table .deviation-cell.low {
+      color: var(--text-tertiary);
+    }
+
+    .deviation-overlay-legend {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 8px;
+      font-size: 9px;
+      color: var(--text-tertiary);
+    }
+
+    .deviation-overlay-legend-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .deviation-overlay-legend-swatch {
+      width: 8px;
+      height: 8px;
+      border-radius: 1px;
+    }
+
+    .deviation-overlay-legend-swatch.swatch-actual { background: #7c3aed; }
+    .deviation-overlay-legend-swatch.swatch-expected { background: var(--border-strong); opacity: 0.45; }
+    .deviation-overlay-legend-swatch.swatch-anchor { background: var(--text-disabled); }
+    [data-theme="dark"] .deviation-overlay-legend-swatch.swatch-actual { background: #a78bfa; }
 
     /* Section toggle buttons */
     .detection-section-toggle {
@@ -1273,56 +1445,60 @@
           <span class="detection-badge" id="detection-total-badge">0</span>
         </div>
 
-        <!-- Viewport Section -->
-        <div class="detection-section" data-type="viewport" id="detection-viewport" style="display: none;">
-          <div class="detection-section-header" onclick="toggleDetectionSection('detection-viewport')">
-            <span class="detection-section-icon">🖥️</span>
-            <span class="detection-section-title">Viewport-Relative</span>
-            <span class="detection-section-count" id="viewport-section-count">0</span>
-            <button class="detection-section-toggle" id="btn-toggle-viewport" onclick="event.stopPropagation(); toggleAllViewportSelections();">Deselect All</button>
-            <span class="detection-section-chevron">▼</span>
-          </div>
-          <div class="detection-section-body">
-            <div class="detection-section-description">
-              Variables with "viewport" in their name — use <code>min(100vw, max)</code> instead of <code>clamp()</code>
+        <div class="detection-panel-body" id="detection-panel-body">
+          <!-- Viewport Section -->
+          <div class="detection-section" data-type="viewport" id="detection-viewport" style="display: none;">
+            <div class="detection-section-header" onclick="toggleDetectionSection('detection-viewport')">
+              <span class="detection-section-icon">🖥️</span>
+              <span class="detection-section-title">Viewport-Relative</span>
+              <span class="detection-section-count" id="viewport-section-count">0</span>
+              <button class="detection-section-toggle" id="btn-toggle-viewport" onclick="event.stopPropagation(); toggleAllViewportSelections();">Deselect All</button>
+              <span class="detection-section-chevron">▼</span>
             </div>
-            <div class="detection-candidate-list" id="viewport-candidate-list"></div>
+            <div class="detection-section-body">
+              <div class="detection-section-description">
+                Variables with "viewport" in their name — use <code>min(100vw, max)</code> instead of <code>clamp()</code>
+              </div>
+              <div class="detection-candidate-list" id="viewport-candidate-list"></div>
+            </div>
+          </div>
+
+          <!-- Proportion Section -->
+          <div class="detection-section" data-type="proportion" id="detection-proportion" style="display: none;">
+            <div class="detection-section-header" onclick="toggleDetectionSection('detection-proportion')">
+              <span class="detection-section-icon">📐</span>
+              <span class="detection-section-title">Grid Proportions</span>
+              <span class="detection-section-count" id="proportion-section-count">0</span>
+              <button class="detection-section-toggle" id="btn-toggle-proportion" onclick="event.stopPropagation(); toggleAllProportionSelections();">Deselect All</button>
+              <span class="detection-section-chevron">▼</span>
+            </div>
+            <div class="detection-section-body">
+              <div class="detection-section-description">
+                Grid proportions (whole, half, third, etc.) — output as <code>flex</code>/<code>fr</code> values
+              </div>
+              <div class="detection-candidate-list" id="proportion-candidate-list"></div>
+            </div>
+          </div>
+
+          <!-- Non-Linear Section -->
+          <div class="detection-section" data-type="nonlinear" id="detection-nonlinear" style="display: none;">
+            <div class="detection-section-header" onclick="toggleDetectionSection('detection-nonlinear')">
+              <span class="detection-section-icon">📈</span>
+              <span class="detection-section-title">Non-Linear Scaling</span>
+              <span class="detection-section-count" id="nonlinear-section-count">0</span>
+              <button class="detection-section-toggle" id="btn-toggle-nonlinear" onclick="event.stopPropagation(); toggleAllNonLinearSelections();">Disable All</button>
+              <span class="detection-section-chevron">▼</span>
+            </div>
+            <div class="detection-section-body">
+              <div class="detection-section-description">
+                Intermediate breakpoint values deviate from linear — uses <code>piecewise clamp()</code> (3 segments)
+              </div>
+              <div class="detection-candidate-list" id="nonlinear-candidate-list"></div>
+            </div>
           </div>
         </div>
 
-        <!-- Proportion Section -->
-        <div class="detection-section" data-type="proportion" id="detection-proportion" style="display: none;">
-          <div class="detection-section-header" onclick="toggleDetectionSection('detection-proportion')">
-            <span class="detection-section-icon">📐</span>
-            <span class="detection-section-title">Grid Proportions</span>
-            <span class="detection-section-count" id="proportion-section-count">0</span>
-            <button class="detection-section-toggle" id="btn-toggle-proportion" onclick="event.stopPropagation(); toggleAllProportionSelections();">Deselect All</button>
-            <span class="detection-section-chevron">▼</span>
-          </div>
-          <div class="detection-section-body">
-            <div class="detection-section-description">
-              Grid proportions (whole, half, third, etc.) — output as <code>flex</code>/<code>fr</code> values
-            </div>
-            <div class="detection-candidate-list" id="proportion-candidate-list"></div>
-          </div>
-        </div>
-
-        <!-- Non-Linear Section -->
-        <div class="detection-section" data-type="nonlinear" id="detection-nonlinear" style="display: none;">
-          <div class="detection-section-header" onclick="toggleDetectionSection('detection-nonlinear')">
-            <span class="detection-section-icon">📈</span>
-            <span class="detection-section-title">Non-Linear Scaling</span>
-            <span class="detection-section-count" id="nonlinear-section-count">0</span>
-            <button class="detection-section-toggle" id="btn-toggle-nonlinear" onclick="event.stopPropagation(); toggleAllNonLinearSelections();">Disable All</button>
-            <span class="detection-section-chevron">▼</span>
-          </div>
-          <div class="detection-section-body">
-            <div class="detection-section-description">
-              Intermediate breakpoint values deviate from linear — uses <code>piecewise clamp()</code> (3 segments)
-            </div>
-            <div class="detection-candidate-list" id="nonlinear-candidate-list"></div>
-          </div>
-        </div>
+        <div class="detection-panel-resize-handle" id="detection-panel-resize"></div>
 
         <div class="detection-panel-footer">
           <span class="detection-summary" id="detection-summary">Adjust selections above, then regenerate</span>
@@ -1358,7 +1534,10 @@
   </div>
   
   <div class="toast" id="toast">Copied to clipboard!</div>
-  
+
+  <!-- Non-linear deviation hover overlay -->
+  <div class="deviation-overlay" id="deviation-overlay" style="display: none;"></div>
+
   <!-- Resize Handle -->
   <svg id="resize-corner" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256">
     <path d="M213.66,133.66l-80,80a8,8,0,0,1-11.32-11.32l80-80a8,8,0,0,1,11.32,11.32Zm-16-99.32a8,8,0,0,0-11.32,0l-152,152a8,8,0,0,0,11.32,11.32l152-152A8,8,0,0,0,197.66,34.34Z"></path>
@@ -1894,7 +2073,7 @@
               <div class="detection-candidate-name">${escapeHtml(candidate.cssName)}</div>
               <div class="detection-candidate-meta">${maxPct}% deviation (L: ${pctL}%, T: ${pctT}%)</div>
             </div>
-            <div class="deviation-graph" title="Desktop → Laptop (${pctL}% off) → Tablet (${pctT}% off) → Mobile">
+            <div class="deviation-graph" data-candidate-index="${nonLinearCandidates.indexOf(candidate)}">
               <div class="deviation-bar bar-desktop" style="height: 18px;"></div>
               <div class="deviation-bar bar-expected" style="height: 14px;" title="Expected linear"></div>
               <div class="deviation-bar bar-laptop" style="height: ${laptopH}px;" title="Laptop: ${pctL}% deviation"></div>
@@ -1909,6 +2088,7 @@
       nonLinearCandidateListEl.innerHTML = html;
       document.getElementById('nonlinear-section-count').textContent = nonLinearCandidates.length;
       updateNonLinearToggleText();
+      attachDeviationOverlayEvents();
     }
 
     function updateNonLinearSelection(checkbox) {
@@ -1932,6 +2112,158 @@
       const btn = document.getElementById('btn-toggle-nonlinear');
       const anySelected = Object.values(nonLinearSelections).some(v => v);
       btn.textContent = anySelected ? 'Disable All' : 'Enable All';
+    }
+
+    // ============================================
+    // NON-LINEAR DEVIATION HOVER OVERLAY
+    // ============================================
+    const deviationOverlayEl = document.getElementById('deviation-overlay');
+
+    function attachDeviationOverlayEvents() {
+      const graphs = nonLinearCandidateListEl.querySelectorAll('.deviation-graph');
+      graphs.forEach(function(graph) {
+        graph.addEventListener('mouseenter', function(e) {
+          const idx = parseInt(graph.dataset.candidateIndex);
+          if (isNaN(idx) || !nonLinearCandidates[idx]) return;
+          showDeviationOverlay(nonLinearCandidates[idx], graph);
+        });
+        graph.addEventListener('mouseleave', function() {
+          hideDeviationOverlay();
+        });
+      });
+    }
+
+    function showDeviationOverlay(candidate, anchorEl) {
+      const r = (v) => Math.round(v * 100) / 100;
+      const pctL = Math.round(candidate.deviationL * 100);
+      const pctT = Math.round(candidate.deviationT * 100);
+
+      // Determine bar heights (proportional to max value across all points)
+      const allVals = [candidate.desktopVal, candidate.laptopVal, candidate.laptopExpected, candidate.tabletVal, candidate.tabletExpected, candidate.mobileVal];
+      const maxVal = Math.max(...allVals);
+      const chartH = 66; // px
+      const barH = (v) => Math.max(2, Math.round(chartH * v / maxVal));
+
+      // Deviation class
+      const devClass = (pct) => pct >= 15 ? 'warn' : pct >= 8 ? 'moderate' : 'low';
+
+      let html = '';
+
+      // Header
+      html += `<div class="deviation-overlay-header">${escapeHtml(candidate.cssName)}</div>`;
+
+      // Legend
+      html += `<div class="deviation-overlay-legend">
+        <span class="deviation-overlay-legend-item"><span class="deviation-overlay-legend-swatch swatch-actual"></span>Actual</span>
+        <span class="deviation-overlay-legend-item"><span class="deviation-overlay-legend-swatch swatch-expected"></span>Expected linear</span>
+        <span class="deviation-overlay-legend-item"><span class="deviation-overlay-legend-swatch swatch-anchor"></span>Anchor</span>
+      </div>`;
+
+      // Chart
+      html += `<div class="deviation-overlay-chart">`;
+
+      // Desktop (anchor)
+      html += `<div class="overlay-bar-group">
+        <div class="overlay-bar-value">${r(candidate.desktopVal)}px</div>
+        <div class="overlay-bar-group-bars">
+          <div class="overlay-bar bar-anchor" style="height: ${barH(candidate.desktopVal)}px;"></div>
+        </div>
+        <div class="overlay-bar-label">Desktop</div>
+      </div>`;
+
+      // Laptop (expected + actual)
+      html += `<div class="overlay-bar-group">
+        <div class="overlay-bar-value">${r(candidate.laptopVal)}px</div>
+        <div class="overlay-bar-group-bars">
+          <div class="overlay-bar bar-expected" style="height: ${barH(candidate.laptopExpected)}px;"></div>
+          <div class="overlay-bar bar-actual" style="height: ${barH(candidate.laptopVal)}px;"></div>
+        </div>
+        <div class="overlay-bar-label">Laptop</div>
+      </div>`;
+
+      // Tablet (expected + actual)
+      html += `<div class="overlay-bar-group">
+        <div class="overlay-bar-value">${r(candidate.tabletVal)}px</div>
+        <div class="overlay-bar-group-bars">
+          <div class="overlay-bar bar-expected" style="height: ${barH(candidate.tabletExpected)}px;"></div>
+          <div class="overlay-bar bar-actual" style="height: ${barH(candidate.tabletVal)}px;"></div>
+        </div>
+        <div class="overlay-bar-label">Tablet</div>
+      </div>`;
+
+      // Mobile (anchor)
+      html += `<div class="overlay-bar-group">
+        <div class="overlay-bar-value">${r(candidate.mobileVal)}px</div>
+        <div class="overlay-bar-group-bars">
+          <div class="overlay-bar bar-anchor" style="height: ${barH(candidate.mobileVal)}px;"></div>
+        </div>
+        <div class="overlay-bar-label">Mobile</div>
+      </div>`;
+
+      html += `</div>`;
+
+      // Table
+      html += `<table class="deviation-overlay-table">
+        <tr><th>Breakpoint</th><th>Actual</th><th>Expected</th><th>Deviation</th></tr>
+        <tr>
+          <td>Desktop</td>
+          <td>${r(candidate.desktopVal)}px</td>
+          <td>\u2014</td>
+          <td class="deviation-cell low">\u2014</td>
+        </tr>
+        <tr>
+          <td>Laptop</td>
+          <td>${r(candidate.laptopVal)}px</td>
+          <td>${r(candidate.laptopExpected)}px</td>
+          <td class="deviation-cell ${devClass(pctL)}">${pctL}%</td>
+        </tr>
+        <tr>
+          <td>Tablet</td>
+          <td>${r(candidate.tabletVal)}px</td>
+          <td>${r(candidate.tabletExpected)}px</td>
+          <td class="deviation-cell ${devClass(pctT)}">${pctT}%</td>
+        </tr>
+        <tr>
+          <td>Mobile</td>
+          <td>${r(candidate.mobileVal)}px</td>
+          <td>\u2014</td>
+          <td class="deviation-cell low">\u2014</td>
+        </tr>
+      </table>`;
+
+      deviationOverlayEl.innerHTML = html;
+      deviationOverlayEl.style.display = 'block';
+
+      // Position overlay near the anchor element, within window bounds
+      const anchorRect = anchorEl.getBoundingClientRect();
+      const overlayW = 300;
+
+      // Horizontal: center on anchor, clamp to window edges
+      let left = anchorRect.left + anchorRect.width / 2 - overlayW / 2;
+      left = Math.max(8, Math.min(left, window.innerWidth - overlayW - 8));
+
+      // Vertical: prefer above, fall back to below
+      deviationOverlayEl.style.left = left + 'px';
+      deviationOverlayEl.style.top = '0px';
+      deviationOverlayEl.style.visibility = 'hidden';
+      // Force layout to measure overlay height
+      const overlayH = deviationOverlayEl.offsetHeight;
+      deviationOverlayEl.style.visibility = '';
+
+      let top;
+      if (anchorRect.top - overlayH - 8 > 0) {
+        top = anchorRect.top - overlayH - 8;
+      } else {
+        top = anchorRect.bottom + 8;
+      }
+      top = Math.max(8, Math.min(top, window.innerHeight - overlayH - 8));
+
+      deviationOverlayEl.style.top = top + 'px';
+      deviationOverlayEl.style.left = left + 'px';
+    }
+
+    function hideDeviationOverlay() {
+      deviationOverlayEl.style.display = 'none';
     }
 
     // Summary of all detection selections
@@ -2279,7 +2611,46 @@
       corner.onpointermove = null;
       corner.releasePointerCapture(e.pointerId);
     });
-    
+
+    // ============================================
+    // DETECTION PANEL RESIZE HANDLE
+    // ============================================
+    const panelResizeHandle = document.getElementById('detection-panel-resize');
+    const panelBody = document.getElementById('detection-panel-body');
+    let detectionPanelHeight = 300; // default, persists across re-renders
+
+    panelResizeHandle.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      const startY = e.clientY;
+      const startH = panelBody.offsetHeight;
+      panelResizeHandle.setPointerCapture(e.pointerId);
+
+      const onMove = (ev) => {
+        const delta = ev.clientY - startY;
+        const newH = Math.max(100, Math.min(600, startH + delta));
+        panelBody.style.maxHeight = newH + 'px';
+        detectionPanelHeight = newH;
+      };
+
+      const onUp = (ev) => {
+        panelResizeHandle.removeEventListener('pointermove', onMove);
+        panelResizeHandle.removeEventListener('pointerup', onUp);
+        panelResizeHandle.releasePointerCapture(ev.pointerId);
+      };
+
+      panelResizeHandle.addEventListener('pointermove', onMove);
+      panelResizeHandle.addEventListener('pointerup', onUp);
+    });
+
+    // Apply persisted height when panel becomes visible
+    const panelBodyObserver = new MutationObserver(() => {
+      const panel = document.getElementById('detection-panel');
+      if (panel && panel.style.display !== 'none') {
+        panelBody.style.maxHeight = detectionPanelHeight + 'px';
+      }
+    });
+    panelBodyObserver.observe(document.getElementById('detection-panel'), { attributes: true, attributeFilter: ['style'] });
+
     // ============================================
     // UTILITIES
     // ============================================

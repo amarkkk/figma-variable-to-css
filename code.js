@@ -618,15 +618,24 @@ function generateFluidCSS(modes, variables, options, outputtedCSSNames, errors, 
                     });
                 }
                 // Check if this is a non-linear candidate (for UI display)
-                var deviation = getNonLinearDeviation(variable, modes);
-                if (deviation) {
-                    nonLinearCandidates.push({
-                        cssName: variable.cssName,
-                        originalName: variable.name,
-                        deviationL: deviation.deviationL,
-                        deviationT: deviation.deviationT,
-                        maxDeviation: Math.max(deviation.deviationL, deviation.deviationT)
-                    });
+                // Skip proportion and viewport-relative variables — they're semantically different
+                if (getProportionColumnCount(variable) === null && !getViewportCandidateReason(variable)) {
+                    var deviation = getNonLinearDeviation(variable, modes);
+                    if (deviation) {
+                        nonLinearCandidates.push({
+                            cssName: variable.cssName,
+                            originalName: variable.name,
+                            deviationL: deviation.deviationL,
+                            deviationT: deviation.deviationT,
+                            maxDeviation: Math.max(deviation.deviationL, deviation.deviationT),
+                            desktopVal: deviation.desktopVal,
+                            laptopVal: deviation.laptopVal,
+                            laptopExpected: deviation.laptopExpected,
+                            tabletVal: deviation.tabletVal,
+                            tabletExpected: deviation.tabletExpected,
+                            mobileVal: deviation.mobileVal
+                        });
+                    }
                 }
             }
         }
@@ -729,7 +738,11 @@ function generateFluidCSS(modes, variables, options, outputtedCSSNames, errors, 
     // These output Laptop→Tablet and Tablet→Mobile clamp segments in @media blocks
     if (options.nonLinearOverrides && options.nonLinearOverrides.length > 0) {
         var piecewiseVars = clampableVars.filter(function (v) {
-            return shouldUsePiecewiseClamp(v, options) && hasModeVariance(v, modes, options) && v.resolvedType === 'FLOAT';
+            return shouldUsePiecewiseClamp(v, options)
+                && !shouldUseProportion(v, options)
+                && !shouldUseViewportRelative(v, options)
+                && hasModeVariance(v, modes, options)
+                && v.resolvedType === 'FLOAT';
         });
         if (piecewiseVars.length > 0 && modes.length >= 3) {
             // Laptop→Tablet segment
@@ -762,7 +775,9 @@ function generateFluidCSS(modes, variables, options, outputtedCSSNames, errors, 
     // Only include if option is enabled
     if (options.includeLegacyFallbacks) {
         var clampableWithVariance = clampableVars.filter(function (v) {
-            return hasModeVariance(v, modes, options);
+            return hasModeVariance(v, modes, options)
+                && !shouldUseProportion(v, options)
+                && !shouldUseViewportRelative(v, options);
         });
         if (clampableWithVariance.length > 0) {
             lines.push('');
@@ -953,7 +968,16 @@ function getNonLinearDeviation(variable, modes) {
     if (deviationL < NON_LINEAR_THRESHOLD && deviationT < NON_LINEAR_THRESHOLD) {
         return null;
     }
-    return { deviationL: deviationL, deviationT: deviationT };
+    return {
+        deviationL: deviationL,
+        deviationT: deviationT,
+        desktopVal: dVal,
+        laptopVal: lVal,
+        laptopExpected: expectedL,
+        tabletVal: tVal,
+        tabletExpected: expectedT,
+        mobileVal: mVal
+    };
 }
 function shouldUsePiecewiseClamp(variable, options) {
     if (options.nonLinearOverrides && options.nonLinearOverrides.length > 0) {
