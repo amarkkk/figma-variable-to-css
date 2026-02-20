@@ -4,6 +4,131 @@ All notable changes to Variable to CSS are documented in this file.
 
 ---
 
+## v1.9 — 2026-02-20
+
+### Summary
+
+Major UI restructure and CSS output improvements. The plugin window is reorganized from a 2-pane sidebar+preview layout into a **4-column resizable grid** (Collections | Options | Edge Cases | CSS Preview). CSS output now supports **mobile-first (min-width)** as the default direction, **dynamic breakpoints** extracted from Figma variables, and **always-on grid proportions**.
+
+### New Features
+
+#### Mobile-first CSS output (min-width) as default
+
+CSS output now defaults to mobile-first direction using ascending `@media (min-width: ...)` queries. A toggle in Options allows switching to desktop-first (`max-width`). This applies to fluid clamp output, fixed per-breakpoint output, piecewise clamp segments, legacy fallbacks, and responsive alias media queries.
+
+**Mobile-first example:**
+```css
+:root { --spacing-gap: 16px; }
+@media (min-width: 840px) { :root { --spacing-gap: clamp(16px, ..., 24px); } }
+@media (min-width: 1366px) { :root { --spacing-gap: clamp(24px, ..., 32px); } }
+```
+
+#### Dynamic breakpoints from Figma variables
+
+Breakpoints are now auto-detected from the Dimension Foundations collection by scanning for a variable with "viewport" in its name. The detected values populate the editable breakpoint fields (Desktop, Laptop, Tablet, Mobile) with the source variable name shown. Falls back to hardcoded defaults if no viewport variable is found.
+
+#### Grid proportions always-on
+
+Proportion variables (those with "proportion" in their name) now always output as unitless column counts + `--fr` variants without requiring opt-in. This applies in both Fluid and Fixed output modes.
+
+#### Per-file settings persistence
+
+Settings can be saved to and loaded from the Figma file via `figma.root.setPluginData()`. Save/Reset buttons at the bottom of the Options panel. Settings travel with the `.fig` file.
+
+### UI Restructure
+
+#### 4-column resizable grid layout
+
+The plugin window (now 900px default width) uses a CSS Grid layout with 4 panels separated by draggable resize handles:
+
+1. **Collections** — List of Figma variable collections with selection checkboxes
+2. **Options** — Output mode, direction, breakpoints, text styles, filename, save/reset
+3. **Edge Cases** — Viewport-relative and non-linear scaling detection (visible in Fluid mode only)
+4. **CSS Preview** — Generated CSS output with search, copy, and download
+
+Columns are resizable via pointer-event drag handles. The edge cases column appears/hides dynamically based on output mode and detected candidates.
+
+#### Edge case panel redesign
+
+The edge case panel was redesigned to match the styling of the other three panels — same background, same uppercase section header (`EDGE CASES`), no nested card borders. The summary line ("1 viewport, 16 non-linear...") sits below the title. The internal height resize handle was removed since column width is now controlled by the grid drag handles.
+
+#### Non-linear deviation overlay redesigned as slope chart
+
+The hover overlay for non-linear candidates was redesigned from a confusing bar chart (Actual/Expected/Anchor) to an **SVG line chart** showing piecewise scaling slopes:
+
+- 4 dots (Mobile → Tablet → Laptop → Desktop) connected by 3 colored purple line segments
+- A dashed gray reference line showing what a single linear clamp would produce
+- A table showing per-segment value deltas (From/To/Delta) instead of deviation percentages
+
+#### CSS Preview search bar fix
+
+The search input, results info, and prev/next navigation buttons are now grouped together as a single unit. Removed the `max-width` constraint and empty `min-width` reservation that were squeezing the search input.
+
+### Bug Fixes
+
+#### Script crash from missing HTML element
+
+A missing `#detection-panel-resize` HTML element caused `addEventListener()` to be called on `null`, crashing the entire script at initialization. This prevented collections from loading, resize handles from working, and CSS from generating. Fixed by adding the element and wrapping JS references in null-guards.
+
+#### Grid layout misalignment with display: none
+
+`.edge-case-panel.hidden` used `display: none` which removed the element from grid flow, causing the 7-column grid template to misalign with 5 visible children. Changed to `visibility: hidden; overflow: hidden` — the element stays in the grid flow while the 0px track handles visual hiding.
+
+#### Output mode switch didn't regenerate CSS
+
+Switching between Fluid and Fixed mode only toggled UI state without regenerating the CSS preview. Added auto-regeneration at the end of `handleOutputModeChange()` when CSS has already been generated.
+
+#### Missing stat element null references
+
+Stat card elements (`#collection-count`, `#variable-count`) removed during restructure still referenced by JS. Added null-guards to prevent TypeError.
+
+### Technical Changes
+
+#### code.ts
+
+**Added to ExportOptions:**
+- `breakpointDirection` — `'mobile-first' | 'desktop-first'`
+- Removed `proportionOverrides` — proportions are now always-on
+
+**Added functions:**
+- `extractBreakpointsFromVariables()` — Scans Dimension Foundations for viewport variables to extract breakpoint values
+
+**Added message handlers:**
+- `scan-breakpoints` — Triggers breakpoint detection and returns results to UI
+- `save-settings` / `load-settings` / `clear-settings` — Per-file settings persistence via `figma.root.setPluginData()`
+
+**Modified functions:**
+- `generateFluidCSS()` — Direction-aware: mobile-first uses smallest mode as `:root` default with ascending `min-width` queries; desktop-first uses largest mode with descending `max-width` queries
+- `generateSteppedCSS()` — Same direction-aware logic for fixed output mode; proportions now always output in fixed mode too
+- `shouldUseProportion()` — Simplified to always return `true` when `getProportionColumnCount()` finds a match (no opt-in check)
+- `generateCSSOutput()` — Header comment now includes direction info
+- `figma.showUI()` — Width changed from 700px to 900px
+
+#### ui.html
+
+**Layout restructure:**
+- Replaced 2-pane sidebar+preview with 7-column CSS Grid (4 panels + 3 resize handles)
+- Grid template toggles between `.main` (without edge cases) and `.main.has-edge-cases` (with edge cases)
+- Column widths stored in CSS custom properties (`--col-input`, `--col-options`, `--col-edge`, `--col-output`)
+
+**Added CSS:**
+- `.resize-handle` — 6px drag handles with pointer-event resize logic
+- `.detection-panel-title` — Sidebar-section-style header for edge case panel
+- `.preview-search-group` — Grouped search input + nav buttons
+- `.deviation-overlay` — Redesigned with SVG line chart
+
+**Added JS:**
+- Column resize IIFE — `pointerdown`/`pointermove`/`pointerup` handlers on 3 resize handles
+- `collectSettings()` / `applySettings()` / `applyDefaultSettings()` / `showSettingsStatus()` — Settings persistence UI
+- Breakpoint direction radio toggle and breakpoint editor with detected source display
+- `showDeviationOverlay()` rewritten to render SVG slope chart
+
+**Removed:**
+- Old bar chart overlay CSS (`.overlay-bar-group`, `.overlay-bar`, etc.)
+- `.detection-panel-header` / `.detection-panel-footer` CSS (replaced with sidebar-section pattern)
+
+---
+
 ## v1.8 — 2026-02-10
 
 ### Summary

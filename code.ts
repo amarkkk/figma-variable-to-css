@@ -75,6 +75,7 @@ interface ProcessedValue {
 
 interface ExportOptions {
   outputMode: 'fluid' | 'fixed';
+  breakpointDirection: 'mobile-first' | 'desktop-first';
   aliasMode: 'preserved' | 'resolved';
   darkModeOutput: 'prefers-color-scheme' | 'class' | 'both';
   includeTimestamp: boolean;
@@ -84,9 +85,8 @@ interface ExportOptions {
   // List of CSS variable names that should use min(100vw, max) instead of clamp()
   // If null/undefined, auto-detect based on "viewport" in name/description
   viewportRelativeOverrides?: string[];
-  // List of CSS variable names that should output as flex/grid proportions
-  // instead of clamp() - outputs unitless number + --fr variant
-  proportionOverrides?: string[];
+  // Proportions are always-on: variables with "proportion" in name always output
+  // as unitless column counts + --fr variants (no opt-in needed)
   // List of CSS variable names that should use piecewise clamp() segments
   // (3 segments between adjacent breakpoints) instead of single linear clamp()
   nonLinearOverrides?: string[];
@@ -161,7 +161,7 @@ var THEME_MODES = ['light', 'dark'];
 // INITIALIZATION
 // ============================================
 
-figma.showUI(__html__, { width: 700, height: 600, themeColors: true });
+figma.showUI(__html__, { width: 900, height: 600, themeColors: true });
 
 // Restore window size
 figma.clientStorage.getAsync('windowSize').then(function(size: any) {
@@ -187,8 +187,35 @@ figma.ui.onmessage = async function(msg: any) {
       await handleScanCollections();
     } else if (msg.type === 'scan-textstyles') {
       await handleScanTextStyles();
+    } else if (msg.type === 'scan-breakpoints') {
+      var detected = await extractBreakpointsFromVariables();
+      figma.ui.postMessage({
+        type: 'breakpoints-detected',
+        breakpoints: detected ? detected.breakpoints : null,
+        sourceName: detected ? detected.sourceName : null,
+        defaults: { desktop: BREAKPOINT_MODES['desktop'], laptop: BREAKPOINT_MODES['laptop'], tablet: BREAKPOINT_MODES['tablet'], mobile: BREAKPOINT_MODES['mobile'] }
+      });
     } else if (msg.type === 'generate-css') {
+      // Update breakpoints from UI if provided
+      if (msg.breakpoints) {
+        if (msg.breakpoints.desktop) BREAKPOINT_MODES['desktop'] = msg.breakpoints.desktop;
+        if (msg.breakpoints.laptop) BREAKPOINT_MODES['laptop'] = msg.breakpoints.laptop;
+        if (msg.breakpoints.tablet) BREAKPOINT_MODES['tablet'] = msg.breakpoints.tablet;
+        if (msg.breakpoints.mobile) BREAKPOINT_MODES['mobile'] = msg.breakpoints.mobile;
+      }
       await handleGenerateCSS(msg.options as ExportOptions);
+    } else if (msg.type === 'save-settings') {
+      figma.root.setPluginData('pluginSettings', JSON.stringify(msg.settings));
+      figma.ui.postMessage({ type: 'settings-saved' });
+    } else if (msg.type === 'load-settings') {
+      var stored = figma.root.getPluginData('pluginSettings');
+      figma.ui.postMessage({
+        type: 'settings-loaded',
+        settings: stored ? JSON.parse(stored) : null
+      });
+    } else if (msg.type === 'clear-settings') {
+      figma.root.setPluginData('pluginSettings', '');
+      figma.ui.postMessage({ type: 'settings-cleared' });
     } else if (msg.type === 'cancel') {
       figma.closePlugin();
     }
@@ -319,6 +346,99 @@ function detectModeType(modes: ModeInfo[]): 'breakpoint' | 'theme' | 'single' {
   }
 
   return 'single';
+}
+
+// Extract breakpoint values from Figma variables (viewport in Dimension Foundations)
+// Returns detected breakpoints and the source variable name, or null if not found
+async function extractBreakpointsFromVariables(): Promise<{ breakpoints: Record<string, number>; sourceName: string } | null> {
+  var collections = await figma.variables.getLocalVariableCollectionsAsync();
+
+  for (var ci = 0; ci < collections.length; ci++) {
+    var collection = collections[ci];
+    if (collection.remote) continue;
+
+    var parsed = parseCollectionName(collection.name);
+    // Look for Dimension Foundations collection
+    if (parsed.domain !== 'dimension' || parsed.layerType !== 'foundations') continue;
+
+    // Must have multiple modes
+    if (collection.modes.length < 2) continue;
+
+    // Check if modes are breakpoint-type
+    var bpKeys = Object.keys(BREAKPOINT_MODES);
+    var modeHasBP = true;
+    for (var mi = 0; mi < collection.modes.length; mi++) {
+      var modeLower = collection.modes[mi].name.toLowerCase();
+      var found = false;
+      for (var bi = 0; bi < bpKeys.length; bi++) {
+        if (modeLower.indexOf(bpKeys[bi]) !== -1) { found = true; break; }
+      }
+      if (!found) { modeHasBP = false; break; }
+    }
+    if (!modeHasBP) continue;
+
+    // Scan variables for "viewport" in name (prefer "viewport--min", fall back to "viewport")
+    var viewportMinVar: Variable | null = null;
+    var viewportVar: Variable | null = null;
+
+    for (var vi = 0; vi < collection.variableIds.length; vi++) {
+      var varId = collection.variableIds[vi];
+      var variable = await figma.variables.getVariableByIdAsync(varId);
+      if (!variable) continue;
+      if (variable.resolvedType !== 'FLOAT') continue;
+
+      var nameLower = variable.name.toLowerCase();
+      if (nameLower.indexOf('viewport') !== -1 && nameLower.indexOf('min') !== -1) {
+        viewportMinVar = variable;
+        break; // Prefer viewport--min
+      }
+      if (nameLower.indexOf('viewport') !== -1 && !viewportVar) {
+        viewportVar = variable;
+      }
+    }
+
+    var targetVar = viewportMinVar || viewportVar;
+    if (!targetVar) continue;
+
+    // Extract the value for each mode as the breakpoint
+    var breakpoints: Record<string, number> = {};
+    for (var mi = 0; mi < collection.modes.length; mi++) {
+      var mode = collection.modes[mi];
+      var modeLower = mode.name.toLowerCase();
+      var rawValue: any = targetVar.valuesByMode[mode.modeId];
+
+      // Resolve if alias
+      if (rawValue && typeof rawValue === 'object' && 'type' in rawValue
+          && rawValue.type === 'VARIABLE_ALIAS') {
+        try {
+          var aliasVar = await figma.variables.getVariableByIdAsync(rawValue.id);
+          if (aliasVar) {
+            var aliasCollection = await figma.variables.getVariableCollectionByIdAsync(aliasVar.variableCollectionId);
+            if (aliasCollection && aliasCollection.modes.length > 0) {
+              rawValue = aliasVar.valuesByMode[aliasCollection.modes[0].modeId];
+            }
+          }
+        } catch (e) {
+          // Skip if alias resolution fails
+        }
+      }
+
+      if (typeof rawValue === 'number') {
+        for (var bi = 0; bi < bpKeys.length; bi++) {
+          if (modeLower.indexOf(bpKeys[bi]) !== -1) {
+            breakpoints[bpKeys[bi]] = rawValue;
+          }
+        }
+      }
+    }
+
+    // Only return if we found at least 2 breakpoints
+    if (Object.keys(breakpoints).length >= 2) {
+      return { breakpoints: breakpoints, sourceName: targetVar.name };
+    }
+  }
+
+  return null;
 }
 
 // Check if a variable has different values/aliases across modes
@@ -673,6 +793,7 @@ function generateCSSOutput(
     lines.push('   Date: ' + timestamp);
   }
   lines.push('   Mode: ' + (options.outputMode === 'fluid' ? 'Fluid (clamp)' : 'Fixed (per-breakpoint)'));
+  lines.push('   Direction: ' + (options.breakpointDirection === 'mobile-first' ? 'Mobile-first (min-width)' : 'Desktop-first (max-width)'));
   lines.push('   ========================================================================== */');
   lines.push('');
   
@@ -823,8 +944,11 @@ function generateFluidCSS(
 ): string[] {
   var lines: string[] = [];
 
-  // Desktop (largest breakpoint) as default
-  var desktopMode = modes[0];
+  // Direction: mobile-first uses smallest breakpoint as default, desktop-first uses largest
+  var isDesktopFirst = options.breakpointDirection !== 'mobile-first';
+  var defaultMode = isDesktopFirst ? modes[0] : modes[modes.length - 1];
+  // Always use largest mode for candidate detection (modes sorted largest-first)
+  var largestMode = modes[0];
 
   // Separate variables into:
   // 1. Variables that can use clamp()/min() - numeric FLOAT values without aliases
@@ -834,7 +958,7 @@ function generateFluidCSS(
 
   for (var vi = 0; vi < variables.length; vi++) {
     var variable = variables[vi];
-    var value = variable.valuesByMode[desktopMode.modeId];
+    var value = variable.valuesByMode[largestMode.modeId];
     if (!value) continue;
 
     // Check if we should skip this variable
@@ -893,12 +1017,12 @@ function generateFluidCSS(
     }
   }
 
-  // Output :root with desktop values and clamp()/min() for numeric variables
+  // Output :root with default mode values and clamp()/min() for numeric variables
   lines.push(':root {');
 
   for (var vi = 0; vi < clampableVars.length; vi++) {
     var variable = clampableVars[vi];
-    var value = variable.valuesByMode[desktopMode.modeId];
+    var value = variable.valuesByMode[defaultMode.modeId];
     var cssValue = formatCSSValue(value, variable, options);
 
     if (cssValue !== null) {
@@ -942,10 +1066,10 @@ function generateFluidCSS(
     }
   }
 
-  // Also output desktop values for media query variables
+  // Also output default mode values for media query variables
   for (var vi = 0; vi < mediaQueryVars.length; vi++) {
     var variable = mediaQueryVars[vi];
-    var value = variable.valuesByMode[desktopMode.modeId];
+    var value = variable.valuesByMode[defaultMode.modeId];
     var cssValue = formatCSSValue(value, variable, options);
 
     if (cssValue !== null) {
@@ -962,43 +1086,66 @@ function generateFluidCSS(
   // Output media queries for variables that need them (aliases with changing refs, non-numeric values)
   // These are OUTSIDE @supports because they're not fallbacks - they're the primary mechanism
   if (mediaQueryVars.length > 0) {
-    for (var i = 1; i < modes.length; i++) {
-      var mode = modes[i];
-      var prevMode = modes[i - 1];
+    if (isDesktopFirst) {
+      // Desktop-first: iterate from second-largest to smallest, max-width
+      for (var i = 1; i < modes.length; i++) {
+        var mode = modes[i];
+        var prevMode = modes[i - 1];
 
-      // Collect variables that have different values at this breakpoint
-      var varsForThisBreakpoint: Array<{ variable: VariableInfo; cssValue: string }> = [];
-
-      for (var vi = 0; vi < mediaQueryVars.length; vi++) {
-        var variable = mediaQueryVars[vi];
-        var val = variable.valuesByMode[mode.modeId];
-        if (!val) continue;
-
-        var cssValue = formatCSSValue(val, variable, options);
-        if (cssValue === null) continue;
-
-        // Always output all modes faithfully per spec (even if same as previous)
-        varsForThisBreakpoint.push({ variable: variable, cssValue: cssValue });
-      }
-
-      if (varsForThisBreakpoint.length > 0) {
-        lines.push('');
-        lines.push('@media (max-width: ' + (prevMode.breakpointPx - 1) + 'px) {');
-        lines.push('  :root {');
-
-        for (var vi = 0; vi < varsForThisBreakpoint.length; vi++) {
-          var item = varsForThisBreakpoint[vi];
-          lines.push('    ' + item.variable.cssName + ': ' + item.cssValue + ';');
+        var varsForThisBreakpoint: Array<{ variable: VariableInfo; cssValue: string }> = [];
+        for (var vi = 0; vi < mediaQueryVars.length; vi++) {
+          var variable = mediaQueryVars[vi];
+          var val = variable.valuesByMode[mode.modeId];
+          if (!val) continue;
+          var cssValue = formatCSSValue(val, variable, options);
+          if (cssValue === null) continue;
+          varsForThisBreakpoint.push({ variable: variable, cssValue: cssValue });
         }
 
-        lines.push('  }');
-        lines.push('}');
+        if (varsForThisBreakpoint.length > 0) {
+          lines.push('');
+          lines.push('@media (max-width: ' + (prevMode.breakpointPx - 1) + 'px) {');
+          lines.push('  :root {');
+          for (var vi = 0; vi < varsForThisBreakpoint.length; vi++) {
+            var item = varsForThisBreakpoint[vi];
+            lines.push('    ' + item.variable.cssName + ': ' + item.cssValue + ';');
+          }
+          lines.push('  }');
+          lines.push('}');
+        }
+      }
+    } else {
+      // Mobile-first: iterate from second-smallest to largest, min-width
+      for (var i = modes.length - 2; i >= 0; i--) {
+        var mode = modes[i];
+
+        var varsForThisBreakpoint: Array<{ variable: VariableInfo; cssValue: string }> = [];
+        for (var vi = 0; vi < mediaQueryVars.length; vi++) {
+          var variable = mediaQueryVars[vi];
+          var val = variable.valuesByMode[mode.modeId];
+          if (!val) continue;
+          var cssValue = formatCSSValue(val, variable, options);
+          if (cssValue === null) continue;
+          varsForThisBreakpoint.push({ variable: variable, cssValue: cssValue });
+        }
+
+        if (varsForThisBreakpoint.length > 0) {
+          lines.push('');
+          lines.push('@media (min-width: ' + mode.breakpointPx + 'px) {');
+          lines.push('  :root {');
+          for (var vi = 0; vi < varsForThisBreakpoint.length; vi++) {
+            var item = varsForThisBreakpoint[vi];
+            lines.push('    ' + item.variable.cssName + ': ' + item.cssValue + ';');
+          }
+          lines.push('  }');
+          lines.push('}');
+        }
       }
     }
   }
 
   // Piecewise clamp media queries for non-linear variables
-  // These output Laptop→Tablet and Tablet→Mobile clamp segments in @media blocks
+  // These output intermediate clamp segments in @media blocks
   if (options.nonLinearOverrides && options.nonLinearOverrides.length > 0) {
     var piecewiseVars = clampableVars.filter(function(v) {
       return shouldUsePiecewiseClamp(v, options)
@@ -1009,27 +1156,53 @@ function generateFluidCSS(
     });
 
     if (piecewiseVars.length > 0 && modes.length >= 3) {
-      // Laptop→Tablet segment
-      lines.push('');
-      lines.push('/* Piecewise clamp: Laptop → Tablet segment */');
-      lines.push('@media (max-width: ' + (modes[0].breakpointPx - 1) + 'px) {');
-      lines.push('  :root {');
-      for (var vi = 0; vi < piecewiseVars.length; vi++) {
-        var v = piecewiseVars[vi];
-        lines.push('    ' + v.cssName + ': ' + generatePiecewiseClampValue(modes[1], modes[2], v) + ';');
-      }
-      lines.push('  }');
-      lines.push('}');
-
-      // Tablet→Mobile segment (if 4+ modes)
-      if (modes.length >= 4) {
+      if (isDesktopFirst) {
+        // Desktop-first: Laptop→Tablet segment, then Tablet→Mobile
         lines.push('');
-        lines.push('/* Piecewise clamp: Tablet → Mobile segment */');
-        lines.push('@media (max-width: ' + (modes[1].breakpointPx - 1) + 'px) {');
+        lines.push('/* Piecewise clamp: Laptop \u2192 Tablet segment */');
+        lines.push('@media (max-width: ' + (modes[0].breakpointPx - 1) + 'px) {');
         lines.push('  :root {');
         for (var vi = 0; vi < piecewiseVars.length; vi++) {
           var v = piecewiseVars[vi];
-          lines.push('    ' + v.cssName + ': ' + generatePiecewiseClampValue(modes[2], modes[3], v) + ';');
+          lines.push('    ' + v.cssName + ': ' + generatePiecewiseClampValue(modes[1], modes[2], v) + ';');
+        }
+        lines.push('  }');
+        lines.push('}');
+
+        if (modes.length >= 4) {
+          lines.push('');
+          lines.push('/* Piecewise clamp: Tablet \u2192 Mobile segment */');
+          lines.push('@media (max-width: ' + (modes[1].breakpointPx - 1) + 'px) {');
+          lines.push('  :root {');
+          for (var vi = 0; vi < piecewiseVars.length; vi++) {
+            var v = piecewiseVars[vi];
+            lines.push('    ' + v.cssName + ': ' + generatePiecewiseClampValue(modes[2], modes[3], v) + ';');
+          }
+          lines.push('  }');
+          lines.push('}');
+        }
+      } else {
+        // Mobile-first: Tablet→Laptop segment, then Laptop→Desktop
+        if (modes.length >= 4) {
+          lines.push('');
+          lines.push('/* Piecewise clamp: Tablet \u2192 Laptop segment */');
+          lines.push('@media (min-width: ' + modes[2].breakpointPx + 'px) {');
+          lines.push('  :root {');
+          for (var vi = 0; vi < piecewiseVars.length; vi++) {
+            var v = piecewiseVars[vi];
+            lines.push('    ' + v.cssName + ': ' + generatePiecewiseClampValue(modes[2], modes[1], v) + ';');
+          }
+          lines.push('  }');
+          lines.push('}');
+        }
+
+        lines.push('');
+        lines.push('/* Piecewise clamp: Laptop \u2192 Desktop segment */');
+        lines.push('@media (min-width: ' + modes[1].breakpointPx + 'px) {');
+        lines.push('  :root {');
+        for (var vi = 0; vi < piecewiseVars.length; vi++) {
+          var v = piecewiseVars[vi];
+          lines.push('    ' + v.cssName + ': ' + generatePiecewiseClampValue(modes[1], modes[0], v) + ';');
         }
         lines.push('  }');
         lines.push('}');
@@ -1051,27 +1224,48 @@ function generateFluidCSS(
       lines.push('/* Fallback for older browsers */');
       lines.push('@supports not (width: clamp(1px, 1vw, 2px)) {');
 
-      for (var i = 1; i < modes.length; i++) {
-        var mode = modes[i];
-        var prevMode = modes[i - 1];
+      if (isDesktopFirst) {
+        for (var i = 1; i < modes.length; i++) {
+          var mode = modes[i];
+          var prevMode = modes[i - 1];
 
-        lines.push('  @media (max-width: ' + (prevMode.breakpointPx - 1) + 'px) {');
-        lines.push('    :root {');
+          lines.push('  @media (max-width: ' + (prevMode.breakpointPx - 1) + 'px) {');
+          lines.push('    :root {');
 
-        for (var vi = 0; vi < clampableWithVariance.length; vi++) {
-          var variable = clampableWithVariance[vi];
-          var val = variable.valuesByMode[mode.modeId];
-          if (!val) continue;
-
-          var cv = formatCSSValue(val, variable, options);
-          if (cv !== null) {
-            lines.push('      ' + variable.cssName + ': ' + cv + ';');
+          for (var vi = 0; vi < clampableWithVariance.length; vi++) {
+            var variable = clampableWithVariance[vi];
+            var val = variable.valuesByMode[mode.modeId];
+            if (!val) continue;
+            var cv = formatCSSValue(val, variable, options);
+            if (cv !== null) {
+              lines.push('      ' + variable.cssName + ': ' + cv + ';');
+            }
           }
-        }
 
-        lines.push('    }');
-        lines.push('  }');
+          lines.push('    }');
+          lines.push('  }');
         }
+      } else {
+        for (var i = modes.length - 2; i >= 0; i--) {
+          var mode = modes[i];
+
+          lines.push('  @media (min-width: ' + mode.breakpointPx + 'px) {');
+          lines.push('    :root {');
+
+          for (var vi = 0; vi < clampableWithVariance.length; vi++) {
+            var variable = clampableWithVariance[vi];
+            var val = variable.valuesByMode[mode.modeId];
+            if (!val) continue;
+            var cv = formatCSSValue(val, variable, options);
+            if (cv !== null) {
+              lines.push('      ' + variable.cssName + ': ' + cv + ';');
+            }
+          }
+
+          lines.push('    }');
+          lines.push('  }');
+        }
+      }
 
       lines.push('}');
     }
@@ -1200,12 +1394,10 @@ function getProportionColumnCount(variable: VariableInfo): number | null {
   return null;
 }
 
-// Check if a variable should be treated as a proportion based on options
+// Check if a variable should be treated as a proportion
+// Proportions are always-on: any variable with a detectable proportion name outputs as grid/flex values
 function shouldUseProportion(variable: VariableInfo, options: ExportOptions): boolean {
-  if (options.proportionOverrides && options.proportionOverrides.length > 0) {
-    return options.proportionOverrides.indexOf(variable.cssName) !== -1;
-  }
-  return false;
+  return getProportionColumnCount(variable) !== null;
 }
 
 // Non-linear detection: 5% deviation threshold
@@ -1406,20 +1598,38 @@ function generateSteppedCSS(
   errors: string[]
 ): string[] {
   var lines: string[] = [];
-  
-  var desktopMode = modes[0];
+
+  // Direction: mobile-first uses smallest breakpoint as default, desktop-first uses largest
+  var isDesktopFirst = options.breakpointDirection !== 'mobile-first';
+  var defaultMode = isDesktopFirst ? modes[0] : modes[modes.length - 1];
+
   lines.push(':root {');
-  
+
   for (var vi = 0; vi < variables.length; vi++) {
     var variable = variables[vi];
-    var value = variable.valuesByMode[desktopMode.modeId];
+    var value = variable.valuesByMode[defaultMode.modeId];
     if (!value) continue;
-    
+
     // Check if we should skip this variable
     if (shouldSkipVariable(variable, value, outputtedCSSNames, errors)) {
       continue;
     }
-    
+
+    // Proportions always output as grid/flex values, even in fixed mode
+    if (shouldUseProportion(variable, options)) {
+      var columnCount = getProportionColumnCount(variable);
+      if (columnCount !== null) {
+        if (options.includeIds) {
+          lines.push('  /* ' + variable.id + ' */');
+        }
+        lines.push('  /* Proportion: ' + columnCount + '/12 columns (flex/grid-ready) */');
+        lines.push('  ' + variable.cssName + ': ' + columnCount + ';');
+        lines.push('  ' + variable.cssName + '--fr: ' + columnCount + 'fr;');
+        outputtedCSSNames.add(variable.cssName);
+        continue;
+      }
+    }
+
     var cssValue = formatCSSValue(value, variable, options);
     if (cssValue !== null) {
       if (options.includeIds) {
@@ -1429,37 +1639,58 @@ function generateSteppedCSS(
       outputtedCSSNames.add(variable.cssName);
     }
   }
-  
+
   lines.push('}');
-  
-  for (var i = 1; i < modes.length; i++) {
-    var mode = modes[i];
-    var prevMode = modes[i - 1];
 
-    lines.push('');
-    lines.push('@media (max-width: ' + (prevMode.breakpointPx - 1) + 'px) {');
-    lines.push('  :root {');
+  if (isDesktopFirst) {
+    // Desktop-first: iterate from second-largest to smallest, max-width
+    for (var i = 1; i < modes.length; i++) {
+      var mode = modes[i];
+      var prevMode = modes[i - 1];
 
-    for (var vi = 0; vi < variables.length; vi++) {
-      var variable = variables[vi];
-      var value = variable.valuesByMode[mode.modeId];
+      lines.push('');
+      lines.push('@media (max-width: ' + (prevMode.breakpointPx - 1) + 'px) {');
+      lines.push('  :root {');
 
-      if (!value) continue;
-
-      // Only output if this variable was in the main :root block
-      if (!outputtedCSSNames.has(variable.cssName)) continue;
-
-      var cssValue = formatCSSValue(value, variable, options);
-
-      // Output ALL values to ensure complete token chain
-      // Even if value matches previous breakpoint, the variable must be declared for alias resolution
-      if (cssValue !== null) {
-        lines.push('    ' + variable.cssName + ': ' + cssValue + ';');
+      for (var vi = 0; vi < variables.length; vi++) {
+        var variable = variables[vi];
+        if (shouldUseProportion(variable, options)) continue;
+        var value = variable.valuesByMode[mode.modeId];
+        if (!value) continue;
+        if (!outputtedCSSNames.has(variable.cssName)) continue;
+        var cssValue = formatCSSValue(value, variable, options);
+        if (cssValue !== null) {
+          lines.push('    ' + variable.cssName + ': ' + cssValue + ';');
+        }
       }
-    }
 
-    lines.push('  }');
-    lines.push('}');
+      lines.push('  }');
+      lines.push('}');
+    }
+  } else {
+    // Mobile-first: iterate from second-smallest to largest, min-width
+    for (var i = modes.length - 2; i >= 0; i--) {
+      var mode = modes[i];
+
+      lines.push('');
+      lines.push('@media (min-width: ' + mode.breakpointPx + 'px) {');
+      lines.push('  :root {');
+
+      for (var vi = 0; vi < variables.length; vi++) {
+        var variable = variables[vi];
+        if (shouldUseProportion(variable, options)) continue;
+        var value = variable.valuesByMode[mode.modeId];
+        if (!value) continue;
+        if (!outputtedCSSNames.has(variable.cssName)) continue;
+        var cssValue = formatCSSValue(value, variable, options);
+        if (cssValue !== null) {
+          lines.push('    ' + variable.cssName + ': ' + cssValue + ';');
+        }
+      }
+
+      lines.push('  }');
+      lines.push('}');
+    }
   }
 
   return lines;

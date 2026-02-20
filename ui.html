@@ -95,29 +95,100 @@
     }
     
     /* ============================================
-       MAIN LAYOUT
+       MAIN LAYOUT — 4-column grid
        ============================================ */
     .main {
       flex: 1;
-      display: flex;
+      display: grid;
+      grid-template-columns: var(--col-input, 160px) 6px var(--col-options, 220px) 6px 0px 0px var(--col-output, 1fr);
       overflow: hidden;
     }
-    
-    /* ============================================
-       SIDEBAR
-       ============================================ */
-    .sidebar {
-      width: 260px;
-      min-width: 260px;
-      border-right: 1px solid var(--border-medium);
+    .main.has-edge-cases {
+      grid-template-columns: var(--col-input, 160px) 6px var(--col-options, 220px) 6px var(--col-edge, 220px) 6px var(--col-output, 1fr);
+    }
+
+    /* Input List Panel (column 1) */
+    .input-list-panel {
       display: flex;
       flex-direction: column;
       overflow: hidden;
       background: var(--bg-primary);
+      min-width: 0;
     }
-    
+    .input-list-panel .collection-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0 12px 12px;
+    }
+
+    /* Resize Handles between columns */
+    .resize-handle {
+      width: 6px;
+      cursor: col-resize;
+      background: var(--border-medium);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .resize-handle:hover,
+    .resize-handle.dragging {
+      background: var(--accent-primary);
+    }
+    .resize-handle::after {
+      content: '';
+      width: 2px;
+      height: 24px;
+      border-radius: 1px;
+      background: var(--text-tertiary);
+      opacity: 0.5;
+    }
+    .resize-handle:hover::after,
+    .resize-handle.dragging::after {
+      background: white;
+      opacity: 0.8;
+    }
+
+    /* Options Panel (column 3) */
+    .options-panel {
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      background: var(--bg-primary);
+      min-width: 0;
+    }
+
+    /* Edge Case Panel (column 5, optional) */
+    .edge-case-panel {
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      overflow-x: hidden;
+      background: var(--bg-primary);
+      min-width: 0;
+    }
+    .edge-case-panel.hidden {
+      overflow: hidden;
+      visibility: hidden;
+      /* Don't use display: none — the 0px grid track handles hiding.
+         display: none would remove the element from grid flow, misaligning
+         the 7-column grid template with fewer visible children. */
+    }
+
+    /* Output Panel (column 7) */
+    .output-panel {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--bg-primary);
+      min-width: 0;
+    }
+
+    /* ============================================
+       PANEL SECTIONS (shared across panels)
+       ============================================ */
     .sidebar-section {
-      padding: 16px;
+      padding: 12px;
     }
     
     .sidebar-section h2 {
@@ -266,6 +337,83 @@
       line-height: 1.4;
     }
 
+    /* Breakpoint inputs */
+    .breakpoint-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+      font-size: 11px;
+    }
+    .breakpoint-row label {
+      width: 60px;
+      color: var(--text-secondary);
+      font-weight: 500;
+      font-size: 11px;
+    }
+    .bp-input {
+      width: 70px;
+      padding: 4px 6px;
+      border: 1px solid var(--border-medium);
+      border-radius: 4px;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: 11px;
+      text-align: right;
+      font-family: 'JetBrains Mono', 'SF Mono', 'Monaco', 'Menlo', monospace;
+    }
+    .bp-input:focus {
+      outline: none;
+      border-color: var(--accent-primary);
+    }
+    .bp-unit {
+      color: var(--text-tertiary);
+      font-size: 10px;
+    }
+    .bp-source-detected {
+      color: var(--success-text, #16a34a);
+    }
+
+    /* Settings persistence buttons */
+    .settings-actions {
+      padding: 12px;
+      border-top: 1px solid var(--border-medium);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .settings-actions button {
+      padding: 5px 10px;
+      font-size: 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      border: 1px solid var(--border-medium);
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+    }
+    .settings-actions button:hover {
+      background: var(--bg-hover);
+      border-color: var(--border-strong);
+    }
+    .settings-actions button.primary {
+      background: var(--accent-primary);
+      color: white;
+      border-color: var(--accent-primary);
+    }
+    .settings-actions button.primary:hover {
+      background: var(--accent-hover);
+    }
+    .settings-status {
+      font-size: 10px;
+      color: var(--success-text);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .settings-status.visible {
+      opacity: 1;
+    }
+
     /* Collapsible option sections with smooth transitions */
     .option-collapsible {
       overflow: hidden;
@@ -312,30 +460,21 @@
        UNIFIED DETECTION PANEL
        ============================================ */
     .detection-panel {
-      margin: 12px;
-      border: 1px solid var(--border-medium);
-      border-radius: 6px;
-      background: var(--bg-secondary);
-      overflow: hidden;
       display: flex;
       flex-direction: column;
+      flex: 1;
+      overflow: hidden;
     }
 
     .detection-panel-body {
       overflow-y: auto;
-      max-height: 300px;
       flex: 1;
+      display: flex;
+      flex-direction: column;
     }
 
     .detection-panel-resize-handle {
-      height: 6px;
-      cursor: ns-resize;
-      background: var(--bg-tertiary);
-      border-top: 1px solid var(--border-subtle);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
+      display: none;
     }
 
     .detection-panel-resize-handle::after {
@@ -351,32 +490,28 @@
       opacity: 0.8;
     }
 
-    .detection-panel-header {
+    .detection-panel-title {
+      flex-shrink: 0;
+    }
+    .detection-panel-title h2 {
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 12px 16px;
-      background: var(--bg-tertiary);
-      border-bottom: 1px solid var(--border-medium);
-      cursor: default;
-      user-select: none;
+      margin-bottom: 4px;
     }
-
-    .detection-panel-header h3 {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text-primary);
-      margin: 0;
-      flex: 1;
-    }
-
-    .detection-panel-header .detection-badge {
-      font-size: 10px;
+    .detection-panel-title .detection-badge {
+      font-size: 9px;
       background: var(--accent-primary);
       color: white;
-      padding: 2px 8px;
+      padding: 1px 6px;
       border-radius: 10px;
       font-weight: 500;
+    }
+    .detection-panel-title .detection-summary {
+      font-size: 10px;
+      color: var(--text-tertiary);
+      line-height: 1.4;
+      margin: 0;
     }
 
     .panel-collapse-icon {
@@ -392,6 +527,10 @@
     /* Accordion section (subsection within unified panel) */
     .detection-section {
       border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      flex: 1;
     }
 
     .detection-section:last-child {
@@ -401,11 +540,12 @@
     .detection-section-header {
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 10px 16px;
+      gap: 4px 6px;
+      padding: 8px 10px;
       cursor: pointer;
       user-select: none;
       transition: background 0.15s;
+      flex-wrap: wrap;
     }
 
     .detection-section-header:hover {
@@ -442,11 +582,14 @@
     }
 
     .detection-section-body {
-      padding: 0 16px 12px;
+      padding: 0 10px 8px;
       overflow: hidden;
       transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.2s ease;
-      max-height: 400px;
+      max-height: 2000px;
       opacity: 1;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
     }
 
     .detection-section.section-collapsed .detection-section-body {
@@ -473,7 +616,6 @@
 
     /* Section color badges/accents */
     .detection-section[data-type="viewport"] .detection-section-title { color: var(--warning-text); }
-    .detection-section[data-type="proportion"] .detection-section-title { color: var(--accent-primary); }
     .detection-section[data-type="nonlinear"] .detection-section-title { color: #7c3aed; }
     [data-theme="dark"] .detection-section[data-type="nonlinear"] .detection-section-title { color: #a78bfa; }
 
@@ -482,18 +624,20 @@
       display: flex;
       flex-direction: column;
       gap: 4px;
-      max-height: 180px;
+      flex: 1;
       overflow-y: auto;
+      min-height: 0;
     }
 
     .detection-candidate-item {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       background: var(--bg-primary);
-      padding: 6px 10px;
+      padding: 5px 8px;
       border-radius: 4px;
       border: 1px solid var(--border-subtle);
+      flex-wrap: wrap;
     }
 
     .detection-candidate-item:hover {
@@ -566,8 +710,8 @@
       border: 1px solid var(--border-strong);
       border-radius: 6px;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-      padding: 12px;
-      width: 300px;
+      padding: 10px;
+      width: 260px;
       pointer-events: none;
     }
 
@@ -575,62 +719,10 @@
       font-size: 11px;
       font-weight: 600;
       color: var(--text-primary);
-      margin-bottom: 10px;
+      margin-bottom: 6px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-    }
-
-    .deviation-overlay-chart {
-      display: flex;
-      align-items: flex-end;
-      justify-content: center;
-      gap: 16px;
-      height: 90px;
-      padding: 0 8px;
-      margin-bottom: 8px;
-      border-bottom: 1px solid var(--border-subtle);
-      padding-bottom: 4px;
-    }
-
-    .overlay-bar-group {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 2px;
-    }
-
-    .overlay-bar-group-bars {
-      display: flex;
-      align-items: flex-end;
-      gap: 2px;
-      height: 70px;
-    }
-
-    .overlay-bar {
-      width: 14px;
-      border-radius: 2px 2px 0 0;
-      position: relative;
-    }
-
-    .overlay-bar.bar-actual { background: #7c3aed; }
-    .overlay-bar.bar-expected { background: var(--border-strong); opacity: 0.45; }
-    .overlay-bar.bar-anchor { background: var(--text-disabled); }
-    [data-theme="dark"] .overlay-bar.bar-actual { background: #a78bfa; }
-
-    .overlay-bar-value {
-      font-size: 8px;
-      color: var(--text-tertiary);
-      text-align: center;
-      white-space: nowrap;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .overlay-bar-label {
-      font-size: 9px;
-      color: var(--text-tertiary);
-      text-align: center;
-      margin-top: 2px;
     }
 
     .deviation-overlay-table {
@@ -693,10 +785,7 @@
       border-radius: 1px;
     }
 
-    .deviation-overlay-legend-swatch.swatch-actual { background: #7c3aed; }
-    .deviation-overlay-legend-swatch.swatch-expected { background: var(--border-strong); opacity: 0.45; }
-    .deviation-overlay-legend-swatch.swatch-anchor { background: var(--text-disabled); }
-    [data-theme="dark"] .deviation-overlay-legend-swatch.swatch-actual { background: #a78bfa; }
+    /* Legend swatch colors are set inline in JS */
 
     /* Section toggle buttons */
     .detection-section-toggle {
@@ -716,21 +805,7 @@
       color: var(--text-secondary);
     }
 
-    /* Panel footer with single Apply button */
-    .detection-panel-footer {
-      padding: 10px 16px;
-      background: var(--bg-tertiary);
-      border-top: 1px solid var(--border-medium);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .detection-panel-footer .detection-summary {
-      flex: 1;
-      font-size: 10px;
-      color: var(--text-tertiary);
-    }
+    /* Panel footer removed — summary moved to header */
 
     .btn-select-all {
       background: transparent;
@@ -830,7 +905,6 @@
       background: var(--bg-secondary);
       border-bottom: 1px solid var(--border-medium);
       display: flex;
-      justify-content: space-between;
       align-items: center;
       gap: 12px;
     }
@@ -844,10 +918,17 @@
       flex-shrink: 0;
     }
 
+    .preview-search-group {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex: 1;
+      min-width: 0;
+    }
     .preview-search-wrapper {
       flex: 1;
-      max-width: 300px;
       position: relative;
+      min-width: 0;
     }
 
     .preview-search {
@@ -884,8 +965,7 @@
       font-size: 10px;
       color: var(--text-tertiary);
       flex-shrink: 0;
-      min-width: 80px;
-      text-align: right;
+      white-space: nowrap;
     }
 
     .search-nav-buttons {
@@ -1278,31 +1358,25 @@
     <div class="subtitle">Export Figma variables to CSS custom properties with fluid scaling</div>
   </div>
   
-  <div class="main">
-    <div class="sidebar">
+  <div class="main" id="main-layout">
+    <!-- Column 1: Input List -->
+    <div class="input-list-panel" id="panel-input">
       <div class="sidebar-section">
         <h2>Collections</h2>
-        <div class="stats-grid" id="stats">
-          <div class="stat-card">
-            <div class="stat-value" id="collection-count">—</div>
-            <div class="stat-label">Collections</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-value" id="variable-count">—</div>
-            <div class="stat-label">Variables</div>
-          </div>
-        </div>
       </div>
-      
       <div class="collection-list" id="collection-list">
         <div class="loading">
           <div class="spinner"></div>
-          <span>Scanning collections...</span>
+          <span>Scanning...</span>
         </div>
       </div>
-      
-      <div class="sidebar-divider"></div>
+    </div>
 
+    <!-- Resize handle 1 -->
+    <div class="resize-handle" id="resize-handle-1" data-left="panel-input" data-right="panel-options"></div>
+
+    <!-- Column 2: Options -->
+    <div class="options-panel" id="panel-options">
       <div class="sidebar-section">
         <h2>Options</h2>
 
@@ -1313,8 +1387,8 @@
             <div class="option-col-value" id="output-mode-summary">Fluid</div>
           </div>
           <div class="option-col">
-            <div class="option-col-label">Text Styles</div>
-            <div class="option-col-value" id="textstyle-summary">Off</div>
+            <div class="option-col-label">Direction</div>
+            <div class="option-col-value" id="direction-summary">Mobile-first</div>
           </div>
         </div>
 
@@ -1331,6 +1405,19 @@
           </label>
         </div>
 
+        <!-- Breakpoint Direction Radio -->
+        <div style="margin-bottom: 12px;">
+          <div style="font-size: 10px; font-weight: 500; color: var(--text-tertiary); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em;">Breakpoint Direction</div>
+          <label class="filename-option">
+            <input type="radio" name="breakpointDirection" value="mobile-first" checked>
+            <span>Mobile-first <span style="color: var(--text-tertiary);">— min-width</span></span>
+          </label>
+          <label class="filename-option">
+            <input type="radio" name="breakpointDirection" value="desktop-first">
+            <span>Desktop-first <span style="color: var(--text-tertiary);">— max-width</span></span>
+          </label>
+        </div>
+
         <!-- Legacy Fallbacks (only relevant for Fluid) — collapsible -->
         <div id="legacy-fallback-option" class="option-collapsible">
           <label class="checkbox-option">
@@ -1338,6 +1425,32 @@
             <span>Include legacy browser fallbacks</span>
           </label>
           <div class="option-hint">Adds @supports fallbacks for browsers without clamp()/min() support</div>
+        </div>
+      </div>
+
+      <div class="sidebar-divider"></div>
+
+      <!-- Breakpoints Section -->
+      <div class="sidebar-section" id="breakpoints-section">
+        <h2>Breakpoints</h2>
+        <div id="breakpoints-source" class="option-hint" style="margin-bottom: 8px;">Detecting from Figma variables...</div>
+        <div class="breakpoint-inputs">
+          <div class="breakpoint-row">
+            <label>Desktop</label>
+            <input type="number" id="bp-desktop" class="bp-input" value="1680" min="0"> <span class="bp-unit">px</span>
+          </div>
+          <div class="breakpoint-row">
+            <label>Laptop</label>
+            <input type="number" id="bp-laptop" class="bp-input" value="1366" min="0"> <span class="bp-unit">px</span>
+          </div>
+          <div class="breakpoint-row">
+            <label>Tablet</label>
+            <input type="number" id="bp-tablet" class="bp-input" value="840" min="0"> <span class="bp-unit">px</span>
+          </div>
+          <div class="breakpoint-row">
+            <label>Mobile</label>
+            <input type="number" id="bp-mobile" class="bp-input" value="480" min="0"> <span class="bp-unit">px</span>
+          </div>
         </div>
       </div>
 
@@ -1410,39 +1523,25 @@
         </div>
         <div class="filename-preview" id="filename-preview">design-tokens-2026-01-15.css</div>
       </div>
-    </div>
-    
-    <div class="preview-panel">
-      <div class="preview-header">
-        <h2>CSS Preview</h2>
-        <div class="preview-search-wrapper">
-          <svg class="preview-search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor">
-            <path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path>
-          </svg>
-          <input type="text" class="preview-search" id="preview-search" placeholder="Search in CSS..." disabled>
-        </div>
-        <div class="search-results-info" id="search-results-info"></div>
-        <div class="search-nav-buttons">
-          <button class="search-nav-btn" id="search-prev" title="Previous match" disabled>
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor">
-              <path d="M213.66,165.66a8,8,0,0,1-11.32,0L128,91.31,53.66,165.66a8,8,0,0,1-11.32-11.32l80-80a8,8,0,0,1,11.32,0l80,80A8,8,0,0,1,213.66,165.66Z"></path>
-            </svg>
-          </button>
-          <button class="search-nav-btn" id="search-next" title="Next match" disabled>
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor">
-              <path d="M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80a8,8,0,0,1,11.32-11.32L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z"></path>
-            </svg>
-          </button>
-        </div>
-        <div class="preview-stats" id="preview-stats"></div>
-      </div>
 
-      <!-- Unified Detection Panel - shown when any special variables are detected -->
-      <div class="detection-panel" id="detection-panel" style="display: none;">
-        <div class="detection-panel-header">
-          <span>🔍</span>
-          <h3>Edge-Case Detection</h3>
-          <span class="detection-badge" id="detection-total-badge">0</span>
+      <!-- Settings persistence -->
+      <div class="settings-actions">
+        <button class="primary" id="btn-save-settings">Save settings</button>
+        <button id="btn-reset-settings">Reset to defaults</button>
+        <span class="settings-status" id="settings-status"></span>
+      </div>
+    </div>
+
+    <!-- Resize handle 2 -->
+    <div class="resize-handle" id="resize-handle-2" data-left="panel-options" data-right="panel-edge"></div>
+
+    <!-- Column 3: Edge Cases (optional, hidden by default) -->
+    <div class="edge-case-panel hidden" id="panel-edge">
+      <!-- Detection panel content moved here -->
+      <div class="detection-panel" id="detection-panel" style="display: block;">
+        <div class="sidebar-section detection-panel-title">
+          <h2>Edge Cases <span class="detection-badge" id="detection-total-badge">0</span></h2>
+          <p class="detection-summary" id="detection-summary">Adjust selections above, then regenerate</p>
         </div>
 
         <div class="detection-panel-body" id="detection-panel-body">
@@ -1460,23 +1559,6 @@
                 Variables with "viewport" in their name — use <code>min(100vw, max)</code> instead of <code>clamp()</code>
               </div>
               <div class="detection-candidate-list" id="viewport-candidate-list"></div>
-            </div>
-          </div>
-
-          <!-- Proportion Section -->
-          <div class="detection-section" data-type="proportion" id="detection-proportion" style="display: none;">
-            <div class="detection-section-header" onclick="toggleDetectionSection('detection-proportion')">
-              <span class="detection-section-icon">📐</span>
-              <span class="detection-section-title">Grid Proportions</span>
-              <span class="detection-section-count" id="proportion-section-count">0</span>
-              <button class="detection-section-toggle" id="btn-toggle-proportion" onclick="event.stopPropagation(); toggleAllProportionSelections();">Deselect All</button>
-              <span class="detection-section-chevron">▼</span>
-            </div>
-            <div class="detection-section-body">
-              <div class="detection-section-description">
-                Grid proportions (whole, half, third, etc.) — output as <code>flex</code>/<code>fr</code> values
-              </div>
-              <div class="detection-candidate-list" id="proportion-candidate-list"></div>
             </div>
           </div>
 
@@ -1499,10 +1581,38 @@
         </div>
 
         <div class="detection-panel-resize-handle" id="detection-panel-resize"></div>
+      </div>
+    </div>
 
-        <div class="detection-panel-footer">
-          <span class="detection-summary" id="detection-summary">Adjust selections above, then regenerate</span>
+    <!-- Resize handle 3 (only visible when edge cases shown) -->
+    <div class="resize-handle" id="resize-handle-3" data-left="panel-edge" data-right="panel-output" style="visibility: hidden;"></div>
+
+    <!-- Column 4: Output -->
+    <div class="output-panel" id="panel-output">
+      <div class="preview-header">
+        <h2>CSS Preview</h2>
+        <div class="preview-search-group">
+          <div class="preview-search-wrapper">
+            <svg class="preview-search-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor">
+              <path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path>
+            </svg>
+            <input type="text" class="preview-search" id="preview-search" placeholder="Search in CSS..." disabled>
+          </div>
+          <div class="search-results-info" id="search-results-info"></div>
+          <div class="search-nav-buttons">
+            <button class="search-nav-btn" id="search-prev" title="Previous match" disabled>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor">
+                <path d="M213.66,165.66a8,8,0,0,1-11.32,0L128,91.31,53.66,165.66a8,8,0,0,1-11.32-11.32l80-80a8,8,0,0,1,11.32,0l80,80A8,8,0,0,1,213.66,165.66Z"></path>
+              </svg>
+            </button>
+            <button class="search-nav-btn" id="search-next" title="Next match" disabled>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor">
+                <path d="M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80a8,8,0,0,1,11.32-11.32L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z"></path>
+              </svg>
+            </button>
+          </div>
         </div>
+        <div class="preview-stats" id="preview-stats"></div>
       </div>
 
       <div class="preview-content" id="preview-content">
@@ -1553,9 +1663,8 @@
     // Track viewport candidates and user selections
     let viewportCandidates = [];
     let viewportSelections = {}; // { cssName: boolean }
-    // Track proportion candidates and user selections
+    // Proportion candidates tracked for stats display only (always-on, no opt-in)
     let proportionCandidates = [];
-    let proportionSelections = {}; // { cssName: boolean }
     // Track non-linear candidates and user selections
     let nonLinearCandidates = [];
     let nonLinearSelections = {}; // { cssName: boolean }
@@ -1595,10 +1704,9 @@
     const detectionTotalBadge = document.getElementById('detection-total-badge');
     const detectionSummaryEl = document.getElementById('detection-summary');
     const viewportSectionEl = document.getElementById('detection-viewport');
-    const proportionSectionEl = document.getElementById('detection-proportion');
     const nonLinearSectionEl = document.getElementById('detection-nonlinear');
     const viewportCandidateListEl = document.getElementById('viewport-candidate-list');
-    const proportionCandidateListEl = document.getElementById('proportion-candidate-list');
+    // proportionCandidateListEl removed — proportions are always-on, no panel needed
     const nonLinearCandidateListEl = document.getElementById('nonlinear-candidate-list');
 
     // Text style elements
@@ -1643,6 +1751,11 @@
 
     // Text style format change handler — update summary grid
     document.querySelectorAll('input[name="textStyleFormat"]').forEach(radio => {
+      radio.addEventListener('change', updateSummaryGrid);
+    });
+
+    // Breakpoint direction change handler — update summary grid
+    document.querySelectorAll('input[name="breakpointDirection"]').forEach(radio => {
       radio.addEventListener('change', updateSummaryGrid);
     });
 
@@ -1697,9 +1810,11 @@
     function getOptions(includeOverrides = false) {
       var legacyCheckbox = document.getElementById('includeLegacyFallbacks');
       var outputModeRadio = document.querySelector('input[name="outputMode"]:checked');
+      var directionRadio = document.querySelector('input[name="breakpointDirection"]:checked');
       var textStyleFormatRadio = document.querySelector('input[name="textStyleFormat"]:checked');
       var options = {
         outputMode: outputModeRadio ? outputModeRadio.value : 'fluid',
+        breakpointDirection: directionRadio ? directionRadio.value : 'mobile-first',
         aliasMode: 'preserved',
         darkModeOutput: 'both', // Outputs both prefers-color-scheme AND [data-theme="dark"]
         includeTimestamp: true,
@@ -1720,14 +1835,7 @@
         }
         options.viewportRelativeOverrides = selectedViewportVars;
 
-        // Include proportion selections
-        var selectedProportionVars = [];
-        for (var cssName in proportionSelections) {
-          if (proportionSelections[cssName]) {
-            selectedProportionVars.push(cssName);
-          }
-        }
-        options.proportionOverrides = selectedProportionVars;
+        // Proportions are always-on — no overrides needed
 
         // Include non-linear selections
         var selectedNonLinearVars = [];
@@ -1755,7 +1863,13 @@
       parent.postMessage({
         pluginMessage: {
           type: 'generate-css',
-          options: getOptions(true)
+          options: getOptions(true),
+          breakpoints: {
+            desktop: parseInt(document.getElementById('bp-desktop').value) || 1680,
+            laptop: parseInt(document.getElementById('bp-laptop').value) || 1366,
+            tablet: parseInt(document.getElementById('bp-tablet').value) || 840,
+            mobile: parseInt(document.getElementById('bp-mobile').value) || 480
+          }
         }
       }, '*');
     }
@@ -1897,9 +2011,10 @@
 
       // Unified detection panel — show sections based on what was detected
       var hasViewport = stats.viewportCandidates && stats.viewportCandidates.length > 0;
-      var hasProportion = stats.proportionCandidates && stats.proportionCandidates.length > 0;
       var hasNonLinear = stats.nonLinearCandidates && stats.nonLinearCandidates.length > 0;
-      var hasAnyDetection = hasViewport || hasProportion || hasNonLinear;
+      // Proportions are always-on (no opt-in panel), just track for stats
+      proportionCandidates = (stats.proportionCandidates && stats.proportionCandidates.length > 0) ? stats.proportionCandidates : [];
+      var hasAnyDetection = hasViewport || hasNonLinear;
 
       if (hasViewport) {
         viewportCandidates = stats.viewportCandidates;
@@ -1908,15 +2023,6 @@
       } else {
         viewportSectionEl.style.display = 'none';
         viewportCandidates = [];
-      }
-
-      if (hasProportion) {
-        proportionCandidates = stats.proportionCandidates;
-        renderProportionCandidates();
-        proportionSectionEl.style.display = 'block';
-      } else {
-        proportionSectionEl.style.display = 'none';
-        proportionCandidates = [];
       }
 
       if (hasNonLinear) {
@@ -1928,14 +2034,28 @@
         nonLinearCandidates = [];
       }
 
-      // Show/hide the unified panel and update badge
-      detectionPanelEl.style.display = hasAnyDetection ? 'block' : 'none';
-      var totalDetected = (viewportCandidates.length || 0) + (proportionCandidates.length || 0) + (nonLinearCandidates.length || 0);
+      // Show/hide the edge case column and update badge
+      var mainLayout = document.getElementById('main-layout');
+      var edgePanel = document.getElementById('panel-edge');
+      var resizeHandle3 = document.getElementById('resize-handle-3');
+      if (hasAnyDetection) {
+        mainLayout.classList.add('has-edge-cases');
+        edgePanel.classList.remove('hidden');
+        if (resizeHandle3) resizeHandle3.style.visibility = '';
+      } else {
+        mainLayout.classList.remove('has-edge-cases');
+        edgePanel.classList.add('hidden');
+        if (resizeHandle3) resizeHandle3.style.visibility = 'hidden';
+      }
+      var totalDetected = (viewportCandidates.length || 0) + (nonLinearCandidates.length || 0);
       detectionTotalBadge.textContent = totalDetected;
       updateDetectionSummary();
 
       // Update stats line with text style count if present
       var statsText = `${stats.collections} collections · ${stats.variables} variables`;
+      if (proportionCandidates.length > 0) {
+        statsText += ` · ${proportionCandidates.length} proportions (grid/flex)`;
+      }
       if (stats.textStyleCount > 0) {
         statsText += ` · ${stats.textStyleCount} text styles`;
       }
@@ -1995,56 +2115,7 @@
 
     window.updateViewportSelection = updateViewportSelection;
 
-    // ============================================
-    // PROPORTION CANDIDATES PANEL
-    // ============================================
-    function renderProportionCandidates() {
-      let html = '';
-      for (const candidate of proportionCandidates) {
-        if (proportionSelections[candidate.cssName] === undefined) {
-          proportionSelections[candidate.cssName] = true;
-        }
-        const checked = proportionSelections[candidate.cssName] ? 'checked' : '';
-
-        html += `
-          <label class="detection-candidate-item">
-            <input type="checkbox" ${checked} data-css-name="${escapeHtml(candidate.cssName)}" onchange="updateProportionSelection(this)">
-            <div class="detection-candidate-info">
-              <div class="detection-candidate-name">${escapeHtml(candidate.cssName)}</div>
-              <div class="detection-candidate-meta">${candidate.columnCount}/12 columns → flex: ${candidate.columnCount}; / ${candidate.columnCount}fr</div>
-            </div>
-          </label>
-        `;
-      }
-      proportionCandidateListEl.innerHTML = html;
-      document.getElementById('proportion-section-count').textContent = proportionCandidates.length;
-      updateProportionToggleText();
-    }
-
-    function updateProportionSelection(checkbox) {
-      const cssName = checkbox.dataset.cssName;
-      proportionSelections[cssName] = checkbox.checked;
-      updateProportionToggleText();
-      updateDetectionSummary();
-    }
-
-    function toggleAllProportionSelections() {
-      const anySelected = Object.values(proportionSelections).some(v => v);
-      const newValue = !anySelected;
-      for (const candidate of proportionCandidates) {
-        proportionSelections[candidate.cssName] = newValue;
-      }
-      renderProportionCandidates();
-      updateDetectionSummary();
-    }
-
-    function updateProportionToggleText() {
-      const btn = document.getElementById('btn-toggle-proportion');
-      const anySelected = Object.values(proportionSelections).some(v => v);
-      btn.textContent = anySelected ? 'Deselect All' : 'Select All';
-    }
-
-    window.updateProportionSelection = updateProportionSelection;
+    // Proportion panel removed — proportions are always-on (grid/flex values)
 
     // ============================================
     // NON-LINEAR CANDIDATES PANEL
@@ -2135,100 +2206,75 @@
 
     function showDeviationOverlay(candidate, anchorEl) {
       const r = (v) => Math.round(v * 100) / 100;
-      const pctL = Math.round(candidate.deviationL * 100);
-      const pctT = Math.round(candidate.deviationT * 100);
 
-      // Determine bar heights (proportional to max value across all points)
-      const allVals = [candidate.desktopVal, candidate.laptopVal, candidate.laptopExpected, candidate.tabletVal, candidate.tabletExpected, candidate.mobileVal];
-      const maxVal = Math.max(...allVals);
-      const chartH = 66; // px
-      const barH = (v) => Math.max(2, Math.round(chartH * v / maxVal));
+      // Values from mobile (left) to desktop (right) — ascending viewport width
+      const points = [
+        { label: 'Mobile', val: candidate.mobileVal },
+        { label: 'Tablet', val: candidate.tabletVal },
+        { label: 'Laptop', val: candidate.laptopVal },
+        { label: 'Desktop', val: candidate.desktopVal }
+      ];
 
-      // Deviation class
-      const devClass = (pct) => pct >= 15 ? 'warn' : pct >= 8 ? 'moderate' : 'low';
+      const vals = points.map(p => p.val);
+      const minVal = Math.min(...vals);
+      const maxVal = Math.max(...vals);
+      const range = maxVal - minVal || 1;
+
+      // SVG dimensions
+      const svgW = 240, svgH = 110;
+      const padL = 10, padR = 10, padT = 22, padB = 26;
+      const plotW = svgW - padL - padR;
+      const plotH = svgH - padT - padB;
+
+      // Map value to Y (inverted — higher value = higher on chart)
+      const yOf = (v) => padT + plotH - (plotH * (v - minVal) / range);
+      // X positions for 4 breakpoints, evenly spaced
+      const xOf = (i) => padL + (plotW * i / 3);
 
       let html = '';
-
-      // Header
       html += `<div class="deviation-overlay-header">${escapeHtml(candidate.cssName)}</div>`;
 
-      // Legend
+      // SVG line chart
+      html += `<svg width="${svgW}" height="${svgH}" style="display: block; margin: 0 auto 6px;">`;
+
+      // Dashed reference line (linear from mobile to desktop = what regular clamp does)
+      html += `<line x1="${xOf(0)}" y1="${yOf(vals[0])}" x2="${xOf(3)}" y2="${yOf(vals[3])}" stroke="#262626" stroke-width="1" stroke-dasharray="4 3" opacity="0.35"/>`;
+
+      // Colored piecewise segments — 3 lines connecting 4 points
+      const segColors = ['#7c3aed', '#9333ea', '#6d28d9'];
+      for (let i = 0; i < 3; i++) {
+        html += `<line x1="${xOf(i)}" y1="${yOf(vals[i])}" x2="${xOf(i+1)}" y2="${yOf(vals[i+1])}" stroke="${segColors[i]}" stroke-width="2.5" stroke-linecap="round"/>`;
+      }
+
+      // Dots and value labels
+      for (let i = 0; i < 4; i++) {
+        const x = xOf(i);
+        const y = yOf(vals[i]);
+        const isAnchor = (i === 0 || i === 3);
+        html += `<circle cx="${x}" cy="${y}" r="3.5" fill="${isAnchor ? 'var(--text-tertiary)' : '#7c3aed'}" stroke="var(--bg-primary)" stroke-width="1.5"/>`;
+        html += `<text x="${x}" y="${y - 8}" text-anchor="middle" font-size="9" fill="var(--text-secondary)" font-family="'SF Mono', Monaco, monospace">${r(vals[i])}</text>`;
+        html += `<text x="${x}" y="${svgH - 6}" text-anchor="middle" font-size="9" fill="var(--text-tertiary)">${points[i].label}</text>`;
+      }
+
+      html += `</svg>`;
+
+      // Compact legend
       html += `<div class="deviation-overlay-legend">
-        <span class="deviation-overlay-legend-item"><span class="deviation-overlay-legend-swatch swatch-actual"></span>Actual</span>
-        <span class="deviation-overlay-legend-item"><span class="deviation-overlay-legend-swatch swatch-expected"></span>Expected linear</span>
-        <span class="deviation-overlay-legend-item"><span class="deviation-overlay-legend-swatch swatch-anchor"></span>Anchor</span>
+        <span class="deviation-overlay-legend-item"><span class="deviation-overlay-legend-swatch" style="background: #7c3aed;"></span>Piecewise segments</span>
+        <span class="deviation-overlay-legend-item"><span class="deviation-overlay-legend-swatch" style="background: var(--border-strong); opacity: 0.4;"></span>Linear (clamp)</span>
       </div>`;
 
-      // Chart
-      html += `<div class="deviation-overlay-chart">`;
+      // Segment table — show value deltas per segment
+      const deltas = [];
+      for (let i = 0; i < 3; i++) {
+        deltas.push(r(vals[i + 1] - vals[i]));
+      }
 
-      // Desktop (anchor)
-      html += `<div class="overlay-bar-group">
-        <div class="overlay-bar-value">${r(candidate.desktopVal)}px</div>
-        <div class="overlay-bar-group-bars">
-          <div class="overlay-bar bar-anchor" style="height: ${barH(candidate.desktopVal)}px;"></div>
-        </div>
-        <div class="overlay-bar-label">Desktop</div>
-      </div>`;
-
-      // Laptop (expected + actual)
-      html += `<div class="overlay-bar-group">
-        <div class="overlay-bar-value">${r(candidate.laptopVal)}px</div>
-        <div class="overlay-bar-group-bars">
-          <div class="overlay-bar bar-expected" style="height: ${barH(candidate.laptopExpected)}px;"></div>
-          <div class="overlay-bar bar-actual" style="height: ${barH(candidate.laptopVal)}px;"></div>
-        </div>
-        <div class="overlay-bar-label">Laptop</div>
-      </div>`;
-
-      // Tablet (expected + actual)
-      html += `<div class="overlay-bar-group">
-        <div class="overlay-bar-value">${r(candidate.tabletVal)}px</div>
-        <div class="overlay-bar-group-bars">
-          <div class="overlay-bar bar-expected" style="height: ${barH(candidate.tabletExpected)}px;"></div>
-          <div class="overlay-bar bar-actual" style="height: ${barH(candidate.tabletVal)}px;"></div>
-        </div>
-        <div class="overlay-bar-label">Tablet</div>
-      </div>`;
-
-      // Mobile (anchor)
-      html += `<div class="overlay-bar-group">
-        <div class="overlay-bar-value">${r(candidate.mobileVal)}px</div>
-        <div class="overlay-bar-group-bars">
-          <div class="overlay-bar bar-anchor" style="height: ${barH(candidate.mobileVal)}px;"></div>
-        </div>
-        <div class="overlay-bar-label">Mobile</div>
-      </div>`;
-
-      html += `</div>`;
-
-      // Table
       html += `<table class="deviation-overlay-table">
-        <tr><th>Breakpoint</th><th>Actual</th><th>Expected</th><th>Deviation</th></tr>
-        <tr>
-          <td>Desktop</td>
-          <td>${r(candidate.desktopVal)}px</td>
-          <td>\u2014</td>
-          <td class="deviation-cell low">\u2014</td>
-        </tr>
-        <tr>
-          <td>Laptop</td>
-          <td>${r(candidate.laptopVal)}px</td>
-          <td>${r(candidate.laptopExpected)}px</td>
-          <td class="deviation-cell ${devClass(pctL)}">${pctL}%</td>
-        </tr>
-        <tr>
-          <td>Tablet</td>
-          <td>${r(candidate.tabletVal)}px</td>
-          <td>${r(candidate.tabletExpected)}px</td>
-          <td class="deviation-cell ${devClass(pctT)}">${pctT}%</td>
-        </tr>
-        <tr>
-          <td>Mobile</td>
-          <td>${r(candidate.mobileVal)}px</td>
-          <td>\u2014</td>
-          <td class="deviation-cell low">\u2014</td>
-        </tr>
+        <tr><th>Segment</th><th>From</th><th>To</th><th>Delta</th></tr>
+        <tr><td>Mobile \u2192 Tablet</td><td>${r(vals[0])}</td><td>${r(vals[1])}</td><td>${deltas[0] > 0 ? '+' : ''}${deltas[0]}</td></tr>
+        <tr><td>Tablet \u2192 Laptop</td><td>${r(vals[1])}</td><td>${r(vals[2])}</td><td>${deltas[1] > 0 ? '+' : ''}${deltas[1]}</td></tr>
+        <tr><td>Laptop \u2192 Desktop</td><td>${r(vals[2])}</td><td>${r(vals[3])}</td><td>${deltas[2] > 0 ? '+' : ''}${deltas[2]}</td></tr>
       </table>`;
 
       deviationOverlayEl.innerHTML = html;
@@ -2236,10 +2282,16 @@
 
       // Position overlay near the anchor element, within window bounds
       const anchorRect = anchorEl.getBoundingClientRect();
-      const overlayW = 300;
+      const overlayW = 260;
 
-      // Horizontal: center on anchor, clamp to window edges
-      let left = anchorRect.left + anchorRect.width / 2 - overlayW / 2;
+      // Horizontal: position to the left of the edge case panel
+      const panelEdge = document.getElementById('panel-edge');
+      const panelRect = panelEdge ? panelEdge.getBoundingClientRect() : anchorRect;
+      let left = panelRect.left - overlayW - 8;
+      // If not enough room on the left, fall back to right side
+      if (left < 8) {
+        left = panelRect.right + 8;
+      }
       left = Math.max(8, Math.min(left, window.innerWidth - overlayW - 8));
 
       // Vertical: prefer above, fall back to below
@@ -2269,15 +2321,15 @@
     // Summary of all detection selections
     function updateDetectionSummary() {
       const vCount = Object.values(viewportSelections).filter(v => v).length;
-      const pCount = Object.values(proportionSelections).filter(v => v).length;
       const nCount = Object.values(nonLinearSelections).filter(v => v).length;
       const parts = [];
       if (vCount > 0) parts.push(vCount + ' viewport');
-      if (pCount > 0) parts.push(pCount + ' proportion');
       if (nCount > 0) parts.push(nCount + ' non-linear');
+      // Proportions are always-on — show as info if any detected
+      if (proportionCandidates.length > 0) parts.push(proportionCandidates.length + ' proportions (auto)');
 
       if (parts.length > 0) {
-        detectionSummaryEl.textContent = parts.join(', ') + ' selected — click Generate CSS to apply';
+        detectionSummaryEl.textContent = parts.join(', ') + ' — click Generate CSS to apply';
       } else {
         detectionSummaryEl.textContent = 'No special handling selected — standard output';
       }
@@ -2301,33 +2353,47 @@
         }
       }
 
-      // Hide detection panel when in fixed mode (not relevant without clamp)
+      // Hide/show edge case panel based on output mode
+      var mainLayout = document.getElementById('main-layout');
+      var edgePanel = document.getElementById('panel-edge');
+      var resizeHandle3 = document.getElementById('resize-handle-3');
       if (mode === 'fixed') {
-        detectionPanelEl.style.display = 'none';
+        // Edge cases not relevant without clamp
+        mainLayout.classList.remove('has-edge-cases');
+        edgePanel.classList.add('hidden');
+        if (resizeHandle3) resizeHandle3.style.visibility = 'hidden';
+      } else {
+        // Restore edge case panel if there are detected candidates
+        var totalDetected = parseInt(detectionTotalBadge.textContent) || 0;
+        if (totalDetected > 0) {
+          mainLayout.classList.add('has-edge-cases');
+          edgePanel.classList.remove('hidden');
+          if (resizeHandle3) resizeHandle3.style.visibility = '';
+        }
       }
 
       // Update the Output Format info section
       updateOutputFormatInfo(mode);
       updateSummaryGrid();
+
+      // Auto-regenerate CSS if it was already generated
+      if (previewContentEl.textContent && !previewContentEl.querySelector('.loading') && !previewContentEl.querySelector('.preview-placeholder')) {
+        generateCSS();
+      }
     }
 
     // Update the two-column summary grid in the sidebar
     function updateSummaryGrid() {
       var mode = document.querySelector('input[name="outputMode"]:checked').value;
+      var direction = document.querySelector('input[name="breakpointDirection"]:checked');
       var outputSummary = document.getElementById('output-mode-summary');
-      var textstyleSummary = document.getElementById('textstyle-summary');
+      var directionSummary = document.getElementById('direction-summary');
 
       if (outputSummary) {
         outputSummary.textContent = mode === 'fluid' ? 'Fluid' : 'Fixed';
       }
-      if (textstyleSummary) {
-        if (includeTextStylesCheckbox && includeTextStylesCheckbox.checked) {
-          var format = document.querySelector('input[name="textStyleFormat"]:checked');
-          var formatName = format ? { 'scss-mixin': 'SCSS', 'css-class': 'CSS Class', 'css-vars': 'CSS Vars' }[format.value] || 'On' : 'On';
-          textstyleSummary.textContent = formatName;
-        } else {
-          textstyleSummary.textContent = 'Off';
-        }
+      if (directionSummary && direction) {
+        directionSummary.textContent = direction.value === 'mobile-first' ? 'Mobile-first' : 'Desktop-first';
       }
     }
 
@@ -2568,8 +2634,8 @@
       
       if (msg.type === 'collections-scanned') {
         collections = msg.collections;
-        collectionCountEl.textContent = msg.collections.length;
-        variableCountEl.textContent = msg.totalVariables;
+        if (collectionCountEl) collectionCountEl.textContent = msg.collections.length;
+        if (variableCountEl) variableCountEl.textContent = msg.totalVariables;
         footerStatsEl.textContent = `${msg.totalVariables} variables found`;
         renderCollections();
       } else if (msg.type === 'textstyles-scanned') {
@@ -2579,12 +2645,39 @@
           countEl.textContent = msg.count;
           countCard.style.display = 'block';
         }
+      } else if (msg.type === 'breakpoints-detected') {
+        var bpSource = document.getElementById('breakpoints-source');
+        if (msg.breakpoints) {
+          bpSource.innerHTML = 'Detected from <strong>' + escapeHtml(msg.sourceName) + '</strong>';
+          bpSource.classList.add('bp-source-detected');
+          if (msg.breakpoints.desktop) document.getElementById('bp-desktop').value = msg.breakpoints.desktop;
+          if (msg.breakpoints.laptop) document.getElementById('bp-laptop').value = msg.breakpoints.laptop;
+          if (msg.breakpoints.tablet) document.getElementById('bp-tablet').value = msg.breakpoints.tablet;
+          if (msg.breakpoints.mobile) document.getElementById('bp-mobile').value = msg.breakpoints.mobile;
+        } else {
+          bpSource.textContent = 'Not found in variables — using defaults (editable)';
+          bpSource.classList.remove('bp-source-detected');
+          document.getElementById('bp-desktop').value = msg.defaults.desktop;
+          document.getElementById('bp-laptop').value = msg.defaults.laptop;
+          document.getElementById('bp-tablet').value = msg.defaults.tablet;
+          document.getElementById('bp-mobile').value = msg.defaults.mobile;
+        }
       } else if (msg.type === 'css-generated') {
         renderPreview(msg.output.css, msg.output.stats);
       } else if (msg.type === 'error') {
         previewContentEl.innerHTML = `<div class="preview-placeholder" style="color: var(--error-text);">Error: ${escapeHtml(msg.message)}</div>`;
         btnGenerate.disabled = false;
         btnGenerate.textContent = 'Generate CSS';
+      } else if (msg.type === 'settings-loaded') {
+        if (msg.settings) {
+          applySettings(msg.settings);
+          showSettingsStatus('Settings restored');
+        }
+      } else if (msg.type === 'settings-saved') {
+        showSettingsStatus('Settings saved \u2713');
+      } else if (msg.type === 'settings-cleared') {
+        applyDefaultSettings();
+        showSettingsStatus('Reset to defaults');
       }
     };
     
@@ -2619,37 +2712,218 @@
     const panelBody = document.getElementById('detection-panel-body');
     let detectionPanelHeight = 300; // default, persists across re-renders
 
-    panelResizeHandle.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
-      const startY = e.clientY;
-      const startH = panelBody.offsetHeight;
-      panelResizeHandle.setPointerCapture(e.pointerId);
+    if (panelResizeHandle) {
+      panelResizeHandle.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        const startY = e.clientY;
+        const startH = panelBody.offsetHeight;
+        panelResizeHandle.setPointerCapture(e.pointerId);
 
-      const onMove = (ev) => {
-        const delta = ev.clientY - startY;
-        const newH = Math.max(100, Math.min(600, startH + delta));
-        panelBody.style.maxHeight = newH + 'px';
-        detectionPanelHeight = newH;
-      };
+        const onMove = (ev) => {
+          const delta = ev.clientY - startY;
+          const newH = Math.max(100, Math.min(600, startH + delta));
+          panelBody.style.maxHeight = newH + 'px';
+          detectionPanelHeight = newH;
+        };
 
-      const onUp = (ev) => {
-        panelResizeHandle.removeEventListener('pointermove', onMove);
-        panelResizeHandle.removeEventListener('pointerup', onUp);
-        panelResizeHandle.releasePointerCapture(ev.pointerId);
-      };
+        const onUp = (ev) => {
+          panelResizeHandle.removeEventListener('pointermove', onMove);
+          panelResizeHandle.removeEventListener('pointerup', onUp);
+          panelResizeHandle.releasePointerCapture(ev.pointerId);
+        };
 
-      panelResizeHandle.addEventListener('pointermove', onMove);
-      panelResizeHandle.addEventListener('pointerup', onUp);
-    });
+        panelResizeHandle.addEventListener('pointermove', onMove);
+        panelResizeHandle.addEventListener('pointerup', onUp);
+      });
 
-    // Apply persisted height when panel becomes visible
-    const panelBodyObserver = new MutationObserver(() => {
-      const panel = document.getElementById('detection-panel');
-      if (panel && panel.style.display !== 'none') {
-        panelBody.style.maxHeight = detectionPanelHeight + 'px';
+      // Apply persisted height when panel becomes visible
+      const panelBodyObserver = new MutationObserver(() => {
+        const panel = document.getElementById('detection-panel');
+        if (panel && panel.style.display !== 'none') {
+          panelBody.style.maxHeight = detectionPanelHeight + 'px';
+        }
+      });
+      if (detectionPanelEl) {
+        panelBodyObserver.observe(detectionPanelEl, { attributes: true, attributeFilter: ['style'] });
       }
+    }
+
+    // ============================================
+    // COLUMN RESIZE HANDLES
+    // ============================================
+    (function setupColumnResizeHandles() {
+      var mainLayout = document.getElementById('main-layout');
+      var handles = [
+        document.getElementById('resize-handle-1'),
+        document.getElementById('resize-handle-2'),
+        document.getElementById('resize-handle-3')
+      ];
+
+      // Map each handle to the CSS custom property and panel it controls
+      // Each handle adjusts the panel to its LEFT
+      var handleConfig = [
+        { prop: '--col-input',   panelId: 'panel-input',   min: 80  },
+        { prop: '--col-options', panelId: 'panel-options',  min: 140 },
+        { prop: '--col-edge',   panelId: 'panel-edge',     min: 120 }
+      ];
+
+      handles.forEach(function(handle, index) {
+        if (!handle) return;
+        var config = handleConfig[index];
+
+        handle.addEventListener('pointerdown', function(e) {
+          e.preventDefault();
+          var startX = e.clientX;
+          var panel = document.getElementById(config.panelId);
+          var startWidth = panel.offsetWidth;
+          handle.classList.add('dragging');
+          handle.setPointerCapture(e.pointerId);
+
+          // Prevent text selection and iframe stealing events
+          document.body.style.userSelect = 'none';
+          document.body.style.cursor = 'col-resize';
+
+          function onMove(ev) {
+            var delta = ev.clientX - startX;
+            var newWidth = Math.max(config.min, startWidth + delta);
+            mainLayout.style.setProperty(config.prop, newWidth + 'px');
+          }
+
+          function onUp(ev) {
+            handle.classList.remove('dragging');
+            handle.removeEventListener('pointermove', onMove);
+            handle.removeEventListener('pointerup', onUp);
+            handle.releasePointerCapture(ev.pointerId);
+            document.body.style.userSelect = '';
+            document.body.style.cursor = '';
+          }
+
+          handle.addEventListener('pointermove', onMove);
+          handle.addEventListener('pointerup', onUp);
+        });
+      });
+    })();
+
+    // ============================================
+    // SETTINGS PERSISTENCE
+    // ============================================
+    function collectSettings() {
+      var mainLayout = document.getElementById('main-layout');
+      var computedStyle = getComputedStyle(mainLayout);
+      return {
+        outputMode: (document.querySelector('input[name="outputMode"]:checked') || {}).value || 'fluid',
+        breakpointDirection: (document.querySelector('input[name="breakpointDirection"]:checked') || {}).value || 'mobile-first',
+        breakpoints: {
+          desktop: parseInt(document.getElementById('bp-desktop').value) || 1680,
+          laptop: parseInt(document.getElementById('bp-laptop').value) || 1366,
+          tablet: parseInt(document.getElementById('bp-tablet').value) || 840,
+          mobile: parseInt(document.getElementById('bp-mobile').value) || 480
+        },
+        includeTextStyles: document.getElementById('includeTextStyles') ? document.getElementById('includeTextStyles').checked : false,
+        textStyleFormat: (document.querySelector('input[name="textStyleFormat"]:checked') || {}).value || 'scss-mixin',
+        includeLegacyFallbacks: document.getElementById('includeLegacyFallbacks') ? document.getElementById('includeLegacyFallbacks').checked : false,
+        columnWidths: {
+          input: mainLayout.style.getPropertyValue('--col-input') || '',
+          options: mainLayout.style.getPropertyValue('--col-options') || '',
+          edge: mainLayout.style.getPropertyValue('--col-edge') || ''
+        }
+      };
+    }
+
+    function applySettings(s) {
+      if (!s) return;
+      // Output mode
+      if (s.outputMode) {
+        var modeRadio = document.querySelector('input[name="outputMode"][value="' + s.outputMode + '"]');
+        if (modeRadio) { modeRadio.checked = true; handleOutputModeChange(); }
+      }
+      // Breakpoint direction
+      if (s.breakpointDirection) {
+        var dirRadio = document.querySelector('input[name="breakpointDirection"][value="' + s.breakpointDirection + '"]');
+        if (dirRadio) { dirRadio.checked = true; updateSummaryGrid(); }
+      }
+      // Breakpoints
+      if (s.breakpoints) {
+        if (s.breakpoints.desktop) document.getElementById('bp-desktop').value = s.breakpoints.desktop;
+        if (s.breakpoints.laptop) document.getElementById('bp-laptop').value = s.breakpoints.laptop;
+        if (s.breakpoints.tablet) document.getElementById('bp-tablet').value = s.breakpoints.tablet;
+        if (s.breakpoints.mobile) document.getElementById('bp-mobile').value = s.breakpoints.mobile;
+      }
+      // Text styles
+      var tsCheckbox = document.getElementById('includeTextStyles');
+      if (tsCheckbox && s.includeTextStyles !== undefined) {
+        tsCheckbox.checked = s.includeTextStyles;
+        var tsOptions = document.getElementById('textstyle-options');
+        if (tsOptions) tsOptions.style.display = s.includeTextStyles ? 'block' : 'none';
+      }
+      if (s.textStyleFormat) {
+        var fmtRadio = document.querySelector('input[name="textStyleFormat"][value="' + s.textStyleFormat + '"]');
+        if (fmtRadio) fmtRadio.checked = true;
+      }
+      // Legacy fallbacks
+      var legacyCheckbox = document.getElementById('includeLegacyFallbacks');
+      if (legacyCheckbox && s.includeLegacyFallbacks !== undefined) {
+        legacyCheckbox.checked = s.includeLegacyFallbacks;
+      }
+      // Column widths
+      if (s.columnWidths) {
+        var mainLayout = document.getElementById('main-layout');
+        if (s.columnWidths.input) mainLayout.style.setProperty('--col-input', s.columnWidths.input);
+        if (s.columnWidths.options) mainLayout.style.setProperty('--col-options', s.columnWidths.options);
+        if (s.columnWidths.edge) mainLayout.style.setProperty('--col-edge', s.columnWidths.edge);
+      }
+    }
+
+    function applyDefaultSettings() {
+      // Reset radios
+      var fluidRadio = document.querySelector('input[name="outputMode"][value="fluid"]');
+      if (fluidRadio) { fluidRadio.checked = true; handleOutputModeChange(); }
+      var mfRadio = document.querySelector('input[name="breakpointDirection"][value="mobile-first"]');
+      if (mfRadio) { mfRadio.checked = true; updateSummaryGrid(); }
+      // Reset breakpoints to defaults
+      document.getElementById('bp-desktop').value = '1680';
+      document.getElementById('bp-laptop').value = '1366';
+      document.getElementById('bp-tablet').value = '840';
+      document.getElementById('bp-mobile').value = '480';
+      // Reset text styles
+      var tsCheckbox = document.getElementById('includeTextStyles');
+      if (tsCheckbox) {
+        tsCheckbox.checked = false;
+        var tsOptions = document.getElementById('textstyle-options');
+        if (tsOptions) tsOptions.style.display = 'none';
+      }
+      var scssRadio = document.querySelector('input[name="textStyleFormat"][value="scss-mixin"]');
+      if (scssRadio) scssRadio.checked = true;
+      // Reset legacy fallbacks
+      var legacyCheckbox = document.getElementById('includeLegacyFallbacks');
+      if (legacyCheckbox) legacyCheckbox.checked = false;
+      // Clear column widths
+      var mainLayout = document.getElementById('main-layout');
+      mainLayout.style.removeProperty('--col-input');
+      mainLayout.style.removeProperty('--col-options');
+      mainLayout.style.removeProperty('--col-edge');
+    }
+
+    function showSettingsStatus(text) {
+      var statusEl = document.getElementById('settings-status');
+      if (!statusEl) return;
+      statusEl.textContent = text;
+      statusEl.classList.add('visible');
+      clearTimeout(statusEl._timeout);
+      statusEl._timeout = setTimeout(function() {
+        statusEl.classList.remove('visible');
+      }, 2000);
+    }
+
+    // Settings button event listeners
+    document.getElementById('btn-save-settings').addEventListener('click', function() {
+      var settings = collectSettings();
+      parent.postMessage({ pluginMessage: { type: 'save-settings', settings: settings } }, '*');
     });
-    panelBodyObserver.observe(document.getElementById('detection-panel'), { attributes: true, attributeFilter: ['style'] });
+
+    document.getElementById('btn-reset-settings').addEventListener('click', function() {
+      parent.postMessage({ pluginMessage: { type: 'clear-settings' } }, '*');
+    });
 
     // ============================================
     // UTILITIES
@@ -2659,13 +2933,15 @@
       div.textContent = text;
       return div.innerHTML;
     }
-    
+
     // ============================================
     // INITIALIZATION
     // ============================================
     updateFilenamePreview();
     parent.postMessage({ pluginMessage: { type: 'scan-collections' } }, '*');
     parent.postMessage({ pluginMessage: { type: 'scan-textstyles' } }, '*');
+    parent.postMessage({ pluginMessage: { type: 'scan-breakpoints' } }, '*');
+    parent.postMessage({ pluginMessage: { type: 'load-settings' } }, '*');
   </script>
 </body>
 </html>
