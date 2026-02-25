@@ -38,36 +38,69 @@ Layer 3: MAPPINGS (single-mode, stable API)
 
 ## Breakpoint System
 
-### Desktop-First Approach
-The system uses desktop-first media queries with `max-width` thresholds.
+### Direction Modes
 
-| Mode    | Viewport Width | Media Query              | Use Case |
-|---------|---------------|--------------------------|----------|
-| Desktop | >= 1680px     | (default, no query)      | Large monitors |
-| Laptop  | >= 1366px     | @media (max-width: 1679px) | Standard laptops |
-| Tablet  | >= 840px      | @media (max-width: 1365px) | Tablets, small laptops |
-| Mobile  | >= 480px      | @media (max-width: 839px)  | Phones |
+The system supports two breakpoint directions, toggled in the Options panel:
+
+| Direction | Default `:root` | Media Queries | Use Case |
+|-----------|-----------------|---------------|----------|
+| **Mobile-first** (default) | Smallest breakpoint (Mobile) | Ascending `@media (min-width: ...)` | Modern progressive enhancement |
+| **Desktop-first** | Largest breakpoint (Desktop) | Descending `@media (max-width: ...)` | Legacy compatibility |
+
+**Mobile-first example:**
+
+| Mode    | Viewport Width | Media Query                        |
+|---------|---------------|------------------------------------|
+| Mobile  | 360px         | (default, no query — `:root`)      |
+| Tablet  | 840px         | `@media (min-width: 840px)`        |
+| Laptop  | 1366px        | `@media (min-width: 1366px)`       |
+| Desktop | 1680px        | `@media (min-width: 1680px)`       |
+
+**Desktop-first example:**
+
+| Mode    | Viewport Width | Media Query                         |
+|---------|---------------|-------------------------------------|
+| Desktop | 1680px        | (default, no query — `:root`)       |
+| Laptop  | 1366px        | `@media (max-width: 1679px)`        |
+| Tablet  | 840px         | `@media (max-width: 1365px)`        |
+| Mobile  | 360px         | `@media (max-width: 839px)`         |
+
+### Dynamic Breakpoints
+
+Breakpoints are **auto-detected from Figma variables** at plugin startup. The plugin scans the Dimension Foundations collection for a variable with "viewport" in its name (preferring "viewport--min" over plain "viewport"). The per-mode values of that variable become the breakpoint widths.
+
+```
+Scan: Dimension Foundations → variable containing "viewport"
+Result: Desktop=1680, Laptop=1366, Tablet=840, Mobile=360
+Source shown in UI: "Detected from grid/proportions/viewport"
+```
+
+If no viewport variable is found, hardcoded defaults are used. Breakpoint values are always editable in the UI regardless of source.
 
 ### Dual-Purpose Values
 The `BREAKPOINT_MODES` values in code.ts serve two purposes:
 1. **Clamp calculations**: Linear interpolation uses actual viewport widths
-2. **Media queries**: Generated as `(breakpointPx - 1)` for max-width
+2. **Media queries**: Desktop-first generates `(breakpointPx - 1)` for max-width; mobile-first uses `breakpointPx` directly for min-width
 
 ```typescript
 var BREAKPOINT_MODES: Record<string, number> = {
-  'desktop': 1680,  // Clamp max viewport
+  'desktop': 1680,  // Clamp max viewport (updated at runtime from Figma)
   'laptop': 1366,   // Clamp interpolation point
   'tablet': 840,    // Clamp interpolation point
-  'mobile': 480     // Clamp min viewport
+  'mobile': 360     // Clamp min viewport
 };
 ```
+
+These values are **updated at runtime** from the UI-provided breakpoints (which may come from auto-detection or user edits) before each CSS generation.
 
 ---
 
 ## CSS Generation Methods
 
-### 1. Clamp (Fluid Scaling)
+### 1. Fluid Mode: Clamp (Linear Interpolation)
 Used for: **Numeric FLOAT values in Foundations without aliases**
+
+The `clamp()` formula is direction-agnostic — only the default `:root` mode and media query direction change.
 
 ```css
 --dimension-heights-1: clamp(25.6px, calc(23.04px + 0.5333vw), 32px);
@@ -80,22 +113,90 @@ intercept = minValue - slope * minVP
 clamp(minPx, calc(intercept + slope*100vw), maxPx)
 ```
 
-### 2. Media Queries (Stepped Values)
+### 2. Fluid Mode: Piecewise Clamp (Non-Linear Scaling)
+Used for: **Variables where intermediate breakpoint values deviate >5% from linear**
+
+Instead of one clamp across the full range, outputs 3 clamp segments between adjacent breakpoints:
+
+**Mobile-first:**
+```css
+:root { --typo-size-scaled-4: clamp(12px, calc(...), 16px); }
+
+/* Piecewise clamp: Tablet → Laptop segment */
+@media (min-width: 840px) {
+  :root { --typo-size-scaled-4: clamp(16px, calc(...), 28px); }
+}
+
+/* Piecewise clamp: Laptop → Desktop segment */
+@media (min-width: 1366px) {
+  :root { --typo-size-scaled-4: clamp(28px, calc(...), 32px); }
+}
+```
+
+### 3. Fluid Mode: Viewport-Relative
+Used for: **Variables with "viewport" in their name**
+
+```css
+--dimension-grid-proportions-viewport: min(100vw, 1680px);
+```
+
+### 4. Fixed Mode (Per-Breakpoint)
+Used for: **All variables when "Fixed — per breakpoint" is selected**
+
+Outputs raw Figma values with media queries — no `clamp()` interpolation.
+
+**Mobile-first:**
+```css
+:root { --spacing-gap: 12px; }
+@media (min-width: 840px) { :root { --spacing-gap: 14px; } }
+@media (min-width: 1366px) { :root { --spacing-gap: 15px; } }
+@media (min-width: 1680px) { :root { --spacing-gap: 16px; } }
+```
+
+### 5. Media Queries (Stepped Alias Values)
 Used for: **Aliases with changing references, non-FLOAT types**
 
 ```css
 :root {
-  --dimension-hero-intro--width: var(--dimension-grid-proportions-half);
+  --dimension-hero-intro--width: var(--dimension-grid-proportions-whole);
 }
 
-@media (max-width: 1679px) {
+@media (min-width: 1366px) {
   :root {
     --dimension-hero-intro--width: var(--dimension-grid-proportions-two-thirds);
   }
 }
+
+@media (min-width: 1680px) {
+  :root {
+    --dimension-hero-intro--width: var(--dimension-grid-proportions-half);
+  }
+}
 ```
 
-### 3. Theme Selectors
+### 6. Grid Proportions (Always-On)
+Used for: **Variables with "proportion" in their name (excluding "viewport")**
+
+Proportion variables always output as unitless column counts + `--fr` variants, regardless of Fluid/Fixed mode. No opt-in required.
+
+```css
+/* Proportion: 6/12 columns (flex/grid-ready) */
+--dimension-grid-proportions-half: 6;
+--dimension-grid-proportions-half--fr: 6fr;
+```
+
+Supported proportion names (12-column grid):
+
+| Name | Columns |
+|------|---------|
+| whole | 12 |
+| three-quarters | 9 |
+| two-thirds | 8 |
+| half | 6 |
+| third | 4 |
+| quarter | 3 |
+
+### 7. Theme Selectors
 Used for: **Light/Dark mode collections**
 
 ```css
@@ -112,6 +213,27 @@ Used for: **Light/Dark mode collections**
 [data-theme="dark"] {
   --color-interactive-primary: var(--color-brand-200);
 }
+```
+
+### 8. Composite Text Styles
+Used for: **Figma Text Styles (optional)**
+
+Three output formats:
+
+```scss
+/* SCSS Mixin */
+@mixin heading-h1 {
+  font-family: var(--typo-type-family-primary);
+  font-size: var(--typo-type-size-fixed-3);
+  font-weight: 700;
+  line-height: var(--typo-type-line-height-tight-fixed-1);
+}
+
+/* CSS Class */
+.heading-h1 { font-family: var(--typo-type-family-primary); ... }
+
+/* CSS Custom Properties */
+:root { --heading-h1-family: var(--typo-type-family-primary); ... }
 ```
 
 ---
@@ -142,30 +264,53 @@ function needsMediaQueries(variable, modes, options): boolean {
 
 ## CSS Output Structure
 
-### For Breakpoint Collections (Foundations, Aliases Extended)
+### For Breakpoint Collections — Mobile-First (default)
 
 ```css
-/* 1. :root block with desktop values */
+/* 1. :root block with mobile (smallest) values */
 :root {
-  /* Clampable variables get clamp() */
-  --dimension-heights-1: clamp(25.6px, calc(...), 32px);
+  /* Clampable variables get clamp() spanning mobile→tablet */
+  --dimension-heights-1: clamp(25.6px, calc(...), 28px);
 
-  /* Media query variables get desktop value */
-  --dimension-hero-width: var(--dimension-grid-proportions-half);
+  /* Media query variables get mobile value */
+  --dimension-hero-width: var(--dimension-grid-proportions-whole);
+
+  /* Proportions always output as grid/flex values */
+  --dimension-grid-proportions-half: 6;
+  --dimension-grid-proportions-half--fr: 6fr;
 }
 
-/* 2. Media queries for alias variables (PRIMARY mechanism) */
-@media (max-width: 1679px) {
+/* 2. Ascending min-width media queries */
+@media (min-width: 840px) {
   :root {
     --dimension-hero-width: var(--dimension-grid-proportions-two-thirds);
   }
 }
 
-/* 3. Fallback for clampable variables (older browsers) */
+@media (min-width: 1680px) {
+  :root {
+    --dimension-hero-width: var(--dimension-grid-proportions-half);
+  }
+}
+
+/* 3. Piecewise clamp segments for non-linear variables */
+@media (min-width: 840px) {
+  :root {
+    --typo-size-scaled-4: clamp(16px, calc(...), 28px);
+  }
+}
+
+@media (min-width: 1366px) {
+  :root {
+    --typo-size-scaled-4: clamp(28px, calc(...), 32px);
+  }
+}
+
+/* 4. Fallback for older browsers (optional) */
 @supports not (width: clamp(1px, 1vw, 2px)) {
-  @media (max-width: 1679px) {
+  @media (min-width: 840px) {
     :root {
-      --dimension-heights-1: 30.48px;
+      --dimension-heights-1: 28px;
     }
   }
 }
@@ -198,6 +343,41 @@ function needsMediaQueries(variable, modes, options): boolean {
   --card-padding: var(--space-card-padding);
 }
 ```
+
+---
+
+## UI Architecture
+
+### 4-Column Resizable Grid
+
+The plugin UI uses a CSS Grid layout with 7 column tracks (4 panels + 3 resize handles):
+
+```
+┌──────────┬─┬──────────┬─┬──────────┬─┬──────────────────┐
+│Collections│ │ Options  │ │Edge Cases│ │   CSS Preview     │
+│          │ │          │ │(optional)│ │                   │
+│ col 1    │h│ col 3    │h│ col 5    │h│   col 7           │
+│          │1│          │2│          │3│                   │
+└──────────┴─┴──────────┴─┴──────────┴─┴──────────────────┘
+```
+
+- Column widths stored in CSS custom properties (`--col-input`, `--col-options`, `--col-edge`, `--col-output`)
+- Resize handles (6px) use `pointerdown`/`pointermove`/`pointerup` events with `setPointerCapture`
+- Edge case column toggles between `0px` (hidden) and `220px` (visible) via `.has-edge-cases` class
+- Hidden panels use `visibility: hidden` (not `display: none`) to preserve grid track alignment
+
+### Edge Case Detection Panel
+
+Visible only in Fluid output mode when candidates are detected. Contains two collapsible accordion sections:
+
+1. **Viewport-Relative** — Variables with "viewport" in their name, outputs `min(100vw, max)` instead of `clamp()`
+2. **Non-Linear Scaling** — Variables where intermediate breakpoint values deviate >5% from linear, outputs piecewise `clamp()` segments
+
+Each candidate has a checkbox (opt-out pattern — checked by default). The non-linear candidates include a mini deviation bar chart; hovering shows an SVG slope chart overlay visualizing the piecewise scaling.
+
+### Settings Persistence
+
+Settings are stored per-file via `figma.root.setPluginData('pluginSettings', JSON.stringify(...))`. This means settings travel with the `.fig` file. The Save/Reset buttons are at the bottom of the Options panel.
 
 ---
 
@@ -251,25 +431,39 @@ if (outputtedCSSNames.has(variable.cssName) && variable.layerType !== 'foundatio
 
 ---
 
+## Special Value Handling
+
+### Unitless Numbers
+Variables matching naming patterns like `weight`, `count`, `columns`, `opacity`, `z-index`, `order`, `flex-grow`, `flex-shrink`, `ratio` are output without `px` suffix. Detection uses segment-boundary matching to avoid false positives (e.g., `border` doesn't match `order`).
+
+### Font-Style Strings
+STRING variables containing CSS font-style keywords (`italic`, `oblique`, `normal`) are output unquoted.
+
+### Decimal Precision
+All CSS numeric output is capped at 2 decimal places.
+
+---
+
 ## Future Considerations
 
 ### Potential Enhancements
-1. **Custom breakpoint configuration** - Allow users to define their own breakpoint values
-2. **SCSS/LESS output** - Alternative preprocessor formats
-3. **CSS Layers** - Use `@layer` for better cascade control
-4. **Variable scoping** - Output to different selectors (not just `:root`)
+1. **SCSS/LESS output** — Alternative preprocessor formats
+2. **CSS Layers** — Use `@layer` for better cascade control
+3. **Variable scoping** — Output to different selectors (not just `:root`)
+4. **Additional breakpoint counts** — Support for 5+ breakpoints beyond the current 4
 
 ### Known Limitations
 1. Clamp only works for numeric FLOAT values
 2. Theme detection relies on "light"/"dark" in mode names
 3. Breakpoint detection relies on "desktop"/"laptop"/"tablet"/"mobile" in mode names
+4. Proportion detection relies on "proportion" in variable name and known fraction names
 
 ---
 
 ## File References
 
 - **Main Plugin Code**: `code.ts`
+- **Compiled Plugin Code**: `code.js`
 - **UI Interface**: `ui.html`
 - **Manifest**: `manifest.json`
-- **Original Prompt**: `context/claude-code-prompt-multimode-css-only.md`
-- **Sample Output**: `context/tokens.css` (v1.2), `output/design-tokens.css` (v1.3)
+- **Changelog**: `CHANGELOG.md`
