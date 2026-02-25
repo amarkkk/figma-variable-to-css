@@ -163,7 +163,6 @@
       display: flex;
       flex-direction: column;
       overflow-y: auto;
-      overflow-x: hidden;
       background: var(--bg-primary);
       min-width: 0;
     }
@@ -463,7 +462,7 @@
       display: flex;
       flex-direction: column;
       flex: 1;
-      overflow: hidden;
+      overflow: visible;
     }
 
     .detection-panel-body {
@@ -471,6 +470,7 @@
       flex: 1;
       display: flex;
       flex-direction: column;
+      min-height: 0;
     }
 
     .detection-panel-resize-handle {
@@ -530,7 +530,6 @@
       display: flex;
       flex-direction: column;
       min-height: 0;
-      flex: 1;
     }
 
     .detection-section:last-child {
@@ -567,7 +566,7 @@
       font-size: 10px;
       color: var(--text-tertiary);
       background: var(--bg-tertiary);
-      padding: 1px 6px;
+      padding: 1px 8px;
       border-radius: 8px;
     }
 
@@ -583,20 +582,13 @@
 
     .detection-section-body {
       padding: 0 10px 8px;
-      overflow: hidden;
-      transition: max-height 0.25s ease, padding 0.25s ease, opacity 0.2s ease;
-      max-height: 2000px;
       opacity: 1;
-      flex: 1;
       display: flex;
       flex-direction: column;
     }
 
     .detection-section.section-collapsed .detection-section-body {
-      max-height: 0;
-      padding-top: 0;
-      padding-bottom: 0;
-      opacity: 0;
+      display: none;
     }
 
     .detection-section-description {
@@ -614,34 +606,284 @@
       border-radius: 3px;
     }
 
+    /* Info toggle section (collapsible "What is...?") */
+    .detection-section-info {
+      margin-bottom: 8px;
+    }
+
+    .detection-info-summary {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 10px;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      padding: 4px 0;
+      user-select: none;
+    }
+
+    .detection-info-summary:hover {
+      color: var(--text-secondary);
+    }
+
+    .detection-info-toggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--bg-tertiary);
+      font-size: 9px;
+      font-weight: 600;
+      flex-shrink: 0;
+      color: var(--text-secondary);
+    }
+
+    .detection-info-body {
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      font-size: 10px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      padding: 0 0 0 19px;
+      transition: max-height 0.25s ease, opacity 0.2s ease, padding 0.2s ease;
+    }
+
+    .detection-section-info.info-expanded .detection-info-body {
+      max-height: 500px;
+      opacity: 1;
+      padding: 6px 0 6px 19px;
+    }
+
+    .detection-info-body p {
+      margin: 0 0 6px;
+    }
+
+    .detection-info-body ul {
+      margin: 0 0 6px;
+      padding-left: 14px;
+    }
+
+    .detection-info-body li {
+      margin-bottom: 3px;
+    }
+
+    .detection-info-body code {
+      font-family: 'SF Mono', 'Monaco', monospace;
+      font-size: 10px;
+      background: rgba(0,0,0,0.08);
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+
+    /* Non-linear grouping: Collection > Group > Variable hierarchy */
+    .nonlinear-collection-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 8px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-primary);
+      background: var(--bg-tertiary);
+      border-radius: 5px;
+      margin-top: 6px;
+      cursor: pointer;
+      user-select: none;
+      position: sticky;
+      top: 0;
+      transition: background 0.15s;
+      z-index: 2;
+    }
+
+    .nonlinear-collection-header:first-child {
+      margin-top: 0;
+    }
+
+    .nonlinear-collection-header:hover {
+      background: var(--bg-hover);
+    }
+
+    .nonlinear-collection-header input[type="checkbox"] {
+      width: 14px;
+      height: 14px;
+      accent-color: #7c3aed;
+      flex-shrink: 0;
+    }
+
+    .nonlinear-collection-chevron {
+      font-size: 9px;
+      color: var(--text-tertiary);
+      transition: transform 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .nonlinear-collection-header.collapsed .nonlinear-collection-chevron {
+      transform: rotate(-90deg);
+    }
+
+    .nonlinear-collection-count {
+      font-size: 9px;
+      color: var(--text-tertiary);
+      background: var(--bg-secondary);
+      padding: 1px 6px;
+      border-radius: 8px;
+      font-weight: 500;
+      margin-left: auto;
+    }
+
+    .nonlinear-collection-body {
+      max-height: 5000px;
+      opacity: 1;
+      transition: max-height 0.2s ease, opacity 0.15s ease;
+      overflow: hidden;
+    }
+
+    .nonlinear-collection-header.collapsed + .nonlinear-collection-body {
+      max-height: 0;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .nonlinear-group-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 6px 5px 14px;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      cursor: pointer;
+      user-select: none;
+      border-left: 2px solid var(--border-subtle);
+      margin-left: 6px;
+      margin-top: 2px;
+      background: var(--bg-secondary);
+      border-radius: 0 4px 4px 0;
+      transition: background 0.15s;
+    }
+
+    .nonlinear-group-header:hover {
+      background: var(--bg-hover);
+    }
+
+    .nonlinear-group-chevron {
+      font-size: 8px;
+      color: var(--text-tertiary);
+      transition: transform 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .nonlinear-group-header.collapsed .nonlinear-group-chevron {
+      transform: rotate(-90deg);
+    }
+
+    .nonlinear-group-header input[type="checkbox"] {
+      width: 12px;
+      height: 12px;
+      accent-color: #7c3aed;
+      flex-shrink: 0;
+    }
+
+    .nonlinear-group-name {
+      font-family: 'SF Mono', 'Monaco', monospace;
+      font-size: 9.5px;
+      color: var(--text-secondary);
+    }
+
+    .nonlinear-group-count {
+      font-size: 9px;
+      color: var(--text-tertiary);
+      margin-left: auto;
+    }
+
+    .nonlinear-group-items {
+      padding-left: 12px;
+      border-left: 2px solid var(--border-subtle);
+      margin-left: 6px;
+      max-height: 5000px;
+      opacity: 1;
+      transition: max-height 0.2s ease, opacity 0.15s ease;
+      overflow: hidden;
+    }
+
+    .nonlinear-group-header.collapsed + .nonlinear-group-items {
+      max-height: 0;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* Value bar mini-chart (always visible, shows relative mode values) */
+    .value-bar-chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 2px;
+      height: 18px;
+      flex-shrink: 0;
+      margin-left: auto;
+    }
+
+    .value-bar-chart .vbar {
+      width: 4px;
+      border-radius: 1px 1px 0 0;
+      min-height: 2px;
+      background: #7c3aed;
+      opacity: 0.6;
+      transition: opacity 0.15s;
+    }
+
+    .detection-candidate-item:hover .value-bar-chart .vbar {
+      opacity: 1;
+    }
+
+    [data-theme="dark"] .value-bar-chart .vbar {
+      background: #a78bfa;
+    }
+
     /* Section color badges/accents */
     .detection-section[data-type="viewport"] .detection-section-title { color: var(--warning-text); }
     .detection-section[data-type="nonlinear"] .detection-section-title { color: #7c3aed; }
     [data-theme="dark"] .detection-section[data-type="nonlinear"] .detection-section-title { color: #a78bfa; }
+
+    .detection-section[data-type="proportions"] .detection-section-title { color: #059669; }
+    [data-theme="dark"] .detection-section[data-type="proportions"] .detection-section-title { color: #34d399; }
+
+    .detection-section-auto-badge {
+      font-size: 9px;
+      padding: 1px 5px;
+      border-radius: 8px;
+      background: #059669;
+      color: #fff;
+      font-weight: 600;
+    }
+    [data-theme="dark"] .detection-section-auto-badge {
+      background: #34d399;
+      color: #000;
+    }
 
     /* Candidate items (shared across all sections) */
     .detection-candidate-list {
       display: flex;
       flex-direction: column;
       gap: 4px;
-      flex: 1;
-      overflow-y: auto;
-      min-height: 0;
     }
 
     .detection-candidate-item {
       display: flex;
       align-items: center;
       gap: 6px;
-      background: var(--bg-primary);
-      padding: 5px 8px;
+      background: transparent;
+      padding: 3px 6px 3px 8px;
       border-radius: 4px;
-      border: 1px solid var(--border-subtle);
+      border: none;
       flex-wrap: wrap;
+      transition: background 0.15s;
     }
 
     .detection-candidate-item:hover {
-      border-color: var(--border-medium);
+      background: var(--bg-hover);
     }
 
     .detection-candidate-item input[type="checkbox"] {
@@ -649,6 +891,7 @@
       height: 14px;
       flex-shrink: 0;
       accent-color: var(--accent-primary);
+      transition: background 0.15s, border-color 0.15s;
     }
 
     .detection-section[data-type="viewport"] .detection-candidate-item input[type="checkbox"] {
@@ -713,6 +956,7 @@
       padding: 10px;
       width: 260px;
       pointer-events: none;
+      transition: opacity 0.15s ease;
     }
 
     .deviation-overlay-header {
@@ -1545,6 +1789,31 @@
         </div>
 
         <div class="detection-panel-body" id="detection-panel-body">
+          <!-- Proportions Section -->
+          <div class="detection-section" data-type="proportions" id="detection-proportions" style="display: none;">
+            <div class="detection-section-header" onclick="toggleDetectionSection('detection-proportions')">
+              <span class="detection-section-icon">▦</span>
+              <span class="detection-section-title">Grid Proportions</span>
+              <span class="detection-section-count" id="proportions-section-count">0</span>
+              <span class="detection-section-auto-badge">auto</span>
+              <span class="detection-section-chevron">▼</span>
+            </div>
+            <div class="detection-section-body">
+              <div class="detection-section-info" id="proportions-info">
+                <div class="detection-info-summary" onclick="this.parentElement.classList.toggle('info-expanded')">
+                  <span class="detection-info-toggle">?</span>
+                  <span>What are grid proportions?</span>
+                </div>
+                <div class="detection-info-body">
+                  <p>Proportion variables represent fractional widths on a <strong>12-column grid</strong>. Auto-detected by patterns like "half", "third", "quarter", "two-thirds", "three-quarters".</p>
+                  <p><strong>Output:</strong> Unitless column count (<code>--prop-half: 6</code>) and flex-ready value (<code>--prop-half--fr: 6fr</code>).</p>
+                  <p>These are <strong>always applied automatically</strong> &mdash; no opt-in needed. Shown here for visibility.</p>
+                </div>
+              </div>
+              <div class="detection-candidate-list" id="proportions-candidate-list"></div>
+            </div>
+          </div>
+
           <!-- Viewport Section -->
           <div class="detection-section" data-type="viewport" id="detection-viewport" style="display: none;">
             <div class="detection-section-header" onclick="toggleDetectionSection('detection-viewport')">
@@ -1555,8 +1824,20 @@
               <span class="detection-section-chevron">▼</span>
             </div>
             <div class="detection-section-body">
-              <div class="detection-section-description">
-                Variables with "viewport" in their name — use <code>min(100vw, max)</code> instead of <code>clamp()</code>
+              <div class="detection-section-info" id="viewport-info">
+                <div class="detection-info-summary" onclick="this.parentElement.classList.toggle('info-expanded')">
+                  <span class="detection-info-toggle">?</span>
+                  <span>What is viewport-relative scaling?</span>
+                </div>
+                <div class="detection-info-body">
+                  <p>Standard <code>clamp()</code> interpolates between fixed breakpoints. <strong>Viewport-relative</strong> variables use <code>min(100vw, max)</code>, tying the value directly to the full viewport width.</p>
+                  <p><strong>When to use:</strong></p>
+                  <ul>
+                    <li>Container or layout widths that should expand to the full viewport</li>
+                    <li>Max-width constraints like content wrappers or hero sections</li>
+                  </ul>
+                  <p><strong>Detection:</strong> Variables with "viewport" in their name or description are auto-detected.</p>
+                </div>
               </div>
               <div class="detection-candidate-list" id="viewport-candidate-list"></div>
             </div>
@@ -1566,14 +1847,27 @@
           <div class="detection-section" data-type="nonlinear" id="detection-nonlinear" style="display: none;">
             <div class="detection-section-header" onclick="toggleDetectionSection('detection-nonlinear')">
               <span class="detection-section-icon">📈</span>
-              <span class="detection-section-title">Non-Linear Scaling</span>
+              <span class="detection-section-title">Piecewise Scaling</span>
               <span class="detection-section-count" id="nonlinear-section-count">0</span>
-              <button class="detection-section-toggle" id="btn-toggle-nonlinear" onclick="event.stopPropagation(); toggleAllNonLinearSelections();">Disable All</button>
+              <button class="detection-section-toggle" id="btn-toggle-nonlinear" onclick="event.stopPropagation(); toggleAllNonLinearSelections();">Select All</button>
               <span class="detection-section-chevron">▼</span>
             </div>
             <div class="detection-section-body">
-              <div class="detection-section-description">
-                Intermediate breakpoint values deviate from linear — uses <code>piecewise clamp()</code> (3 segments)
+              <div class="detection-section-info" id="nonlinear-info">
+                <div class="detection-info-summary" onclick="this.parentElement.classList.toggle('info-expanded')">
+                  <span class="detection-info-toggle">?</span>
+                  <span>What is piecewise scaling?</span>
+                </div>
+                <div class="detection-info-body">
+                  <p>Standard <code>clamp()</code> draws a single straight line between the smallest and largest breakpoint. <strong>Piecewise clamp</strong> creates separate scaling segments between each adjacent pair of breakpoints, following the exact values your design team set.</p>
+                  <p><strong>Good candidates:</strong></p>
+                  <ul>
+                    <li>Typography that needs aggressive scaling on small screens but gentle scaling on large screens</li>
+                    <li>Spacing tokens where tablet values are intentionally held closer to desktop</li>
+                    <li>Any value where intermediate breakpoints were deliberately tuned</li>
+                  </ul>
+                  <p><strong>How detection works:</strong> Every numeric variable with at least one value that differs across breakpoints is listed below. Variables are grouped by collection and path. Select individual variables or use the collection/group checkboxes for bulk selection.</p>
+                </div>
               </div>
               <div class="detection-candidate-list" id="nonlinear-candidate-list"></div>
             </div>
@@ -1668,6 +1962,7 @@
     // Track non-linear candidates and user selections
     let nonLinearCandidates = [];
     let nonLinearSelections = {}; // { cssName: boolean }
+    let nonLinearCollapseState = {}; // { 'col:id': bool, 'grp:id:path': bool } — true = collapsed
     // Search state
     let searchMatches = [];
     let currentMatchIndex = -1;
@@ -2014,7 +2309,8 @@
       var hasNonLinear = stats.nonLinearCandidates && stats.nonLinearCandidates.length > 0;
       // Proportions are always-on (no opt-in panel), just track for stats
       proportionCandidates = (stats.proportionCandidates && stats.proportionCandidates.length > 0) ? stats.proportionCandidates : [];
-      var hasAnyDetection = hasViewport || hasNonLinear;
+      var hasProportions = proportionCandidates.length > 0;
+      var hasAnyDetection = hasViewport || hasNonLinear || hasProportions;
 
       if (hasViewport) {
         viewportCandidates = stats.viewportCandidates;
@@ -2034,6 +2330,14 @@
         nonLinearCandidates = [];
       }
 
+      var proportionsSectionEl = document.getElementById('detection-proportions');
+      if (hasProportions) {
+        renderProportionCandidates();
+        proportionsSectionEl.style.display = 'block';
+      } else {
+        proportionsSectionEl.style.display = 'none';
+      }
+
       // Show/hide the edge case column and update badge
       var mainLayout = document.getElementById('main-layout');
       var edgePanel = document.getElementById('panel-edge');
@@ -2047,7 +2351,7 @@
         edgePanel.classList.add('hidden');
         if (resizeHandle3) resizeHandle3.style.visibility = 'hidden';
       }
-      var totalDetected = (viewportCandidates.length || 0) + (nonLinearCandidates.length || 0);
+      var totalDetected = (viewportCandidates.length || 0) + (nonLinearCandidates.length || 0) + (proportionCandidates.length || 0);
       detectionTotalBadge.textContent = totalDetected;
       updateDetectionSummary();
 
@@ -2086,13 +2390,16 @@
         `;
       }
       viewportCandidateListEl.innerHTML = html;
-      document.getElementById('viewport-section-count').textContent = viewportCandidates.length;
+      var selectedCount = Object.values(viewportSelections).filter(v => v).length;
+      document.getElementById('viewport-section-count').textContent = selectedCount + '/' + viewportCandidates.length;
       updateViewportToggleText();
     }
 
     function updateViewportSelection(checkbox) {
       const cssName = checkbox.dataset.cssName;
       viewportSelections[cssName] = checkbox.checked;
+      var selectedCount = Object.values(viewportSelections).filter(v => v).length;
+      document.getElementById('viewport-section-count').textContent = selectedCount + '/' + viewportCandidates.length;
       updateViewportToggleText();
       updateDetectionSummary();
     }
@@ -2113,6 +2420,25 @@
       btn.textContent = anySelected ? 'Deselect All' : 'Select All';
     }
 
+    // ============================================
+    // PROPORTIONS CANDIDATES PANEL
+    // ============================================
+    function renderProportionCandidates() {
+      var listEl = document.getElementById('proportions-candidate-list');
+      var html = '';
+      for (var i = 0; i < proportionCandidates.length; i++) {
+        var candidate = proportionCandidates[i];
+        html += '<div class="detection-candidate-item">' +
+          '<div class="detection-candidate-info">' +
+            '<div class="detection-candidate-name">' + escapeHtml(candidate.cssName) + '</div>' +
+            '<div class="detection-candidate-meta">' + candidate.columnCount + '/12 columns</div>' +
+          '</div>' +
+        '</div>';
+      }
+      listEl.innerHTML = html;
+      document.getElementById('proportions-section-count').textContent = proportionCandidates.length;
+    }
+
     window.updateViewportSelection = updateViewportSelection;
 
     // Proportion panel removed — proportions are always-on (grid/flex values)
@@ -2120,51 +2446,122 @@
     // ============================================
     // NON-LINEAR CANDIDATES PANEL
     // ============================================
-    function renderNonLinearCandidates() {
-      let html = '';
-      for (const candidate of nonLinearCandidates) {
-        if (nonLinearSelections[candidate.cssName] === undefined) {
-          nonLinearSelections[candidate.cssName] = true;
+
+    // Build grouped structure: Collection > Group > Variables
+    function buildNonLinearGroups(candidates) {
+      var collections = new Map();
+      for (var i = 0; i < candidates.length; i++) {
+        var candidate = candidates[i];
+        var colId = candidate.collectionId || '_unknown';
+        var colName = candidate.collectionName || 'Unknown';
+        if (!collections.has(colId)) {
+          collections.set(colId, { name: colName, groups: new Map() });
         }
-        const checked = nonLinearSelections[candidate.cssName] ? 'checked' : '';
-        const pctL = Math.round(candidate.deviationL * 100);
-        const pctT = Math.round(candidate.deviationT * 100);
-        const maxPct = Math.round(candidate.maxDeviation * 100);
-
-        // Mini deviation graph: 4 bars showing Desktop, Laptop, Tablet, Mobile
-        // Heights represent the deviation from expected linear values
-        // Desktop and Mobile are the anchors (100%), Laptop and Tablet show actual position
-        const laptopH = Math.max(2, Math.min(18, Math.round(18 * (1 - candidate.deviationL))));
-        const tabletH = Math.max(2, Math.min(18, Math.round(18 * (1 - candidate.deviationT))));
-
-        html += `
-          <label class="detection-candidate-item">
-            <input type="checkbox" ${checked} data-css-name="${escapeHtml(candidate.cssName)}" onchange="updateNonLinearSelection(this)">
-            <div class="detection-candidate-info">
-              <div class="detection-candidate-name">${escapeHtml(candidate.cssName)}</div>
-              <div class="detection-candidate-meta">${maxPct}% deviation (L: ${pctL}%, T: ${pctT}%)</div>
-            </div>
-            <div class="deviation-graph" data-candidate-index="${nonLinearCandidates.indexOf(candidate)}">
-              <div class="deviation-bar bar-desktop" style="height: 18px;"></div>
-              <div class="deviation-bar bar-expected" style="height: 14px;" title="Expected linear"></div>
-              <div class="deviation-bar bar-laptop" style="height: ${laptopH}px;" title="Laptop: ${pctL}% deviation"></div>
-              <div class="deviation-bar bar-expected" style="height: 8px;" title="Expected linear"></div>
-              <div class="deviation-bar bar-tablet" style="height: ${tabletH}px;" title="Tablet: ${pctT}% deviation"></div>
-              <div class="deviation-bar bar-expected" style="height: 4px;" title="Expected linear"></div>
-              <div class="deviation-bar bar-mobile" style="height: 2px;"></div>
-            </div>
-          </label>
-        `;
+        var col = collections.get(colId);
+        var groupKey = candidate.group || '';
+        if (!col.groups.has(groupKey)) {
+          col.groups.set(groupKey, []);
+        }
+        col.groups.get(groupKey).push(candidate);
       }
+      return collections;
+    }
+
+    function renderNonLinearCandidates() {
+      // Apply any pending saved selections first
+      if (window._pendingNonLinearSelections) {
+        var pending = window._pendingNonLinearSelections;
+        for (var i = 0; i < pending.length; i++) {
+          nonLinearSelections[pending[i]] = true;
+        }
+        window._pendingNonLinearSelections = null;
+      }
+
+      // Set defaults for any candidates not yet in selections (default OFF = opt-in)
+      for (var i = 0; i < nonLinearCandidates.length; i++) {
+        if (nonLinearSelections[nonLinearCandidates[i].cssName] === undefined) {
+          nonLinearSelections[nonLinearCandidates[i].cssName] = false;
+        }
+      }
+
+      var grouped = buildNonLinearGroups(nonLinearCandidates);
+      var html = '';
+
+      grouped.forEach(function(colData, colId) {
+        var colTotal = 0;
+        colData.groups.forEach(function(vars) { colTotal += vars.length; });
+
+        // Collection header with checkbox + chevron
+        var colCollapsed = nonLinearCollapseState['col:' + colId] ? ' collapsed' : '';
+        html += '<div class="nonlinear-collection-header' + colCollapsed + '" data-collapse-key="col:' + escapeHtml(colId) + '" onclick="toggleNonLinearAccordion(this)">';
+        html += '<span class="nonlinear-collection-chevron">▼</span>';
+        html += '<input type="checkbox" class="nonlinear-collection-checkbox" data-collection-id="' + escapeHtml(colId) + '" onclick="event.stopPropagation(); toggleNonLinearCollection(\'' + escapeHtml(colId) + '\')">';
+        html += '<span>' + escapeHtml(colData.name) + '</span>';
+        html += '<span class="nonlinear-collection-count">' + colTotal + '</span>';
+        html += '</div>';
+
+        // Collection body (collapsible)
+        html += '<div class="nonlinear-collection-body">';
+
+        colData.groups.forEach(function(candidates, groupKey) {
+          // Group header (only show if there's a group path)
+          if (groupKey !== '') {
+            var groupCollapseKey = 'grp:' + colId + ':' + groupKey;
+            var grpCollapsed = nonLinearCollapseState[groupCollapseKey] ? ' collapsed' : '';
+            html += '<div class="nonlinear-group-header' + grpCollapsed + '" data-collapse-key="' + escapeHtml(groupCollapseKey) + '" onclick="toggleNonLinearAccordion(this)">';
+            html += '<span class="nonlinear-group-chevron">▼</span>';
+            html += '<input type="checkbox" class="nonlinear-group-checkbox" data-collection-id="' + escapeHtml(colId) + '" data-group="' + escapeHtml(groupKey) + '" onclick="event.stopPropagation(); toggleNonLinearGroup(\'' + escapeHtml(colId) + '\', \'' + escapeHtml(groupKey) + '\')">';
+            html += '<span class="nonlinear-group-name">' + escapeHtml(groupKey) + '</span>';
+            html += '<span class="nonlinear-group-count">' + candidates.length + '</span>';
+            html += '</div>';
+          }
+
+          html += '<div class="nonlinear-group-items">';
+          for (var ci = 0; ci < candidates.length; ci++) {
+            var candidate = candidates[ci];
+            var checked = nonLinearSelections[candidate.cssName] ? 'checked' : '';
+
+            // Value bar chart: always show bars representing relative mode values
+            var chartHtml = '';
+            if (candidate.modeValues && candidate.modeValues.length >= 2) {
+              var allVals = candidate.modeValues.map(function(mv) { return mv.value; });
+              var maxV = Math.max.apply(null, allVals);
+              var minV = Math.min.apply(null, allVals);
+              var vRange = maxV - minV || 1;
+              chartHtml = '<div class="value-bar-chart" data-candidate-index="' + nonLinearCandidates.indexOf(candidate) + '">';
+              for (var vi = 0; vi < candidate.modeValues.length; vi++) {
+                var barH = Math.max(2, Math.round(16 * (candidate.modeValues[vi].value - minV) / vRange) + 2);
+                chartHtml += '<div class="vbar" style="height:' + barH + 'px" title="' + escapeHtml(candidate.modeValues[vi].name) + ': ' + (Math.round(candidate.modeValues[vi].value * 100) / 100) + '"></div>';
+              }
+              chartHtml += '</div>';
+            }
+
+            html += '<label class="detection-candidate-item">' +
+              '<input type="checkbox" ' + checked + ' data-css-name="' + escapeHtml(candidate.cssName) + '" onchange="updateNonLinearSelection(this)">' +
+              '<div class="detection-candidate-info">' +
+                '<div class="detection-candidate-name">' + escapeHtml(candidate.cssName) + '</div>' +
+              '</div>' +
+              chartHtml +
+            '</label>';
+          }
+          html += '</div>';
+        });
+
+        html += '</div>'; // end collection body
+      });
+
       nonLinearCandidateListEl.innerHTML = html;
-      document.getElementById('nonlinear-section-count').textContent = nonLinearCandidates.length;
+      var selectedCount = Object.values(nonLinearSelections).filter(function(v) { return v; }).length;
+      document.getElementById('nonlinear-section-count').textContent = selectedCount + '/' + nonLinearCandidates.length;
       updateNonLinearToggleText();
-      attachDeviationOverlayEvents();
+      updateNonLinearCheckboxStates();
+      attachValueBarOverlayEvents();
     }
 
     function updateNonLinearSelection(checkbox) {
       const cssName = checkbox.dataset.cssName;
       nonLinearSelections[cssName] = checkbox.checked;
+      updateNonLinearCheckboxStates();
       updateNonLinearToggleText();
       updateDetectionSummary();
     }
@@ -2179,10 +2576,79 @@
       updateDetectionSummary();
     }
 
+    function toggleNonLinearCollection(collectionId) {
+      var candidates = nonLinearCandidates.filter(function(c) { return c.collectionId === collectionId; });
+      var anySelected = candidates.some(function(c) { return nonLinearSelections[c.cssName]; });
+      var newValue = !anySelected;
+      candidates.forEach(function(c) { nonLinearSelections[c.cssName] = newValue; });
+      renderNonLinearCandidates();
+      updateDetectionSummary();
+    }
+
+    function toggleNonLinearGroup(collectionId, group) {
+      var candidates = nonLinearCandidates.filter(function(c) {
+        return c.collectionId === collectionId && (c.group || '') === group;
+      });
+      var anySelected = candidates.some(function(c) { return nonLinearSelections[c.cssName]; });
+      var newValue = !anySelected;
+      candidates.forEach(function(c) { nonLinearSelections[c.cssName] = newValue; });
+      renderNonLinearCandidates();
+      updateDetectionSummary();
+    }
+
+    function updateNonLinearCheckboxStates() {
+      // Update collection checkbox states (checked / indeterminate / unchecked)
+      document.querySelectorAll('.nonlinear-collection-checkbox').forEach(function(cb) {
+        var colId = cb.dataset.collectionId;
+        var candidates = nonLinearCandidates.filter(function(c) { return c.collectionId === colId; });
+        var checkedCount = candidates.filter(function(c) { return nonLinearSelections[c.cssName]; }).length;
+        cb.checked = checkedCount === candidates.length && candidates.length > 0;
+        cb.indeterminate = checkedCount > 0 && checkedCount < candidates.length;
+      });
+      // Update group checkbox states
+      document.querySelectorAll('.nonlinear-group-checkbox').forEach(function(cb) {
+        var colId = cb.dataset.collectionId;
+        var group = cb.dataset.group;
+        var candidates = nonLinearCandidates.filter(function(c) {
+          return c.collectionId === colId && (c.group || '') === group;
+        });
+        var checkedCount = candidates.filter(function(c) { return nonLinearSelections[c.cssName]; }).length;
+        cb.checked = checkedCount === candidates.length && candidates.length > 0;
+        cb.indeterminate = checkedCount > 0 && checkedCount < candidates.length;
+      });
+      // Update section badge with selected/total
+      var selectedCount = Object.values(nonLinearSelections).filter(function(v) { return v; }).length;
+      document.getElementById('nonlinear-section-count').textContent = selectedCount + '/' + nonLinearCandidates.length;
+    }
+
     function updateNonLinearToggleText() {
       const btn = document.getElementById('btn-toggle-nonlinear');
       const anySelected = Object.values(nonLinearSelections).some(v => v);
-      btn.textContent = anySelected ? 'Disable All' : 'Enable All';
+      btn.textContent = anySelected ? 'Deselect All' : 'Select All';
+    }
+
+    // Accordion collapse/expand for collection and group headers
+    function toggleNonLinearAccordion(headerEl) {
+      var key = headerEl.dataset.collapseKey;
+      if (!key) return;
+      var isCollapsed = headerEl.classList.toggle('collapsed');
+      nonLinearCollapseState[key] = isCollapsed;
+      // CSS handles the transition via .collapsed + sibling selector
+    }
+
+    // Attach hover overlay to value-bar-chart elements (replaces old deviation-graph events)
+    function attachValueBarOverlayEvents() {
+      var charts = nonLinearCandidateListEl.querySelectorAll('.value-bar-chart');
+      charts.forEach(function(chart) {
+        chart.addEventListener('mouseenter', function(e) {
+          var idx = parseInt(chart.dataset.candidateIndex);
+          if (isNaN(idx) || !nonLinearCandidates[idx]) return;
+          showDeviationOverlay(nonLinearCandidates[idx], chart);
+        });
+        chart.addEventListener('mouseleave', function() {
+          hideDeviationOverlay();
+        });
+      });
     }
 
     // ============================================
@@ -2207,14 +2673,23 @@
     function showDeviationOverlay(candidate, anchorEl) {
       const r = (v) => Math.round(v * 100) / 100;
 
-      // Values from mobile (left) to desktop (right) — ascending viewport width
-      const points = [
-        { label: 'Mobile', val: candidate.mobileVal },
-        { label: 'Tablet', val: candidate.tabletVal },
-        { label: 'Laptop', val: candidate.laptopVal },
-        { label: 'Desktop', val: candidate.desktopVal }
-      ];
+      // Build points array — use modeValues if available (supports 2+ modes), fall back to 4-point legacy
+      let points;
+      if (candidate.modeValues && candidate.modeValues.length >= 2) {
+        // modeValues are ordered Desktop→Mobile (descending breakpoint), reverse to ascending for chart
+        points = [...candidate.modeValues].reverse().map(function(mv) {
+          return { label: mv.name, val: mv.value };
+        });
+      } else {
+        points = [
+          { label: 'Mobile', val: candidate.mobileVal },
+          { label: 'Tablet', val: candidate.tabletVal },
+          { label: 'Laptop', val: candidate.laptopVal },
+          { label: 'Desktop', val: candidate.desktopVal }
+        ];
+      }
 
+      const numPoints = points.length;
       const vals = points.map(p => p.val);
       const minVal = Math.min(...vals);
       const maxVal = Math.max(...vals);
@@ -2228,8 +2703,8 @@
 
       // Map value to Y (inverted — higher value = higher on chart)
       const yOf = (v) => padT + plotH - (plotH * (v - minVal) / range);
-      // X positions for 4 breakpoints, evenly spaced
-      const xOf = (i) => padL + (plotW * i / 3);
+      // X positions evenly spaced for N breakpoints
+      const xOf = (i) => padL + (plotW * i / (numPoints - 1));
 
       let html = '';
       html += `<div class="deviation-overlay-header">${escapeHtml(candidate.cssName)}</div>`;
@@ -2237,20 +2712,20 @@
       // SVG line chart
       html += `<svg width="${svgW}" height="${svgH}" style="display: block; margin: 0 auto 6px;">`;
 
-      // Dashed reference line (linear from mobile to desktop = what regular clamp does)
-      html += `<line x1="${xOf(0)}" y1="${yOf(vals[0])}" x2="${xOf(3)}" y2="${yOf(vals[3])}" stroke="#262626" stroke-width="1" stroke-dasharray="4 3" opacity="0.35"/>`;
+      // Dashed reference line (linear from first to last = what regular clamp does)
+      html += `<line x1="${xOf(0)}" y1="${yOf(vals[0])}" x2="${xOf(numPoints - 1)}" y2="${yOf(vals[numPoints - 1])}" stroke="#262626" stroke-width="1" stroke-dasharray="4 3" opacity="0.35"/>`;
 
-      // Colored piecewise segments — 3 lines connecting 4 points
-      const segColors = ['#7c3aed', '#9333ea', '#6d28d9'];
-      for (let i = 0; i < 3; i++) {
-        html += `<line x1="${xOf(i)}" y1="${yOf(vals[i])}" x2="${xOf(i+1)}" y2="${yOf(vals[i+1])}" stroke="${segColors[i]}" stroke-width="2.5" stroke-linecap="round"/>`;
+      // Colored piecewise segments — (N-1) lines connecting N points
+      const segColors = ['#7c3aed', '#9333ea', '#6d28d9', '#581c87'];
+      for (let i = 0; i < numPoints - 1; i++) {
+        html += `<line x1="${xOf(i)}" y1="${yOf(vals[i])}" x2="${xOf(i+1)}" y2="${yOf(vals[i+1])}" stroke="${segColors[i % segColors.length]}" stroke-width="2.5" stroke-linecap="round"/>`;
       }
 
       // Dots and value labels
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < numPoints; i++) {
         const x = xOf(i);
         const y = yOf(vals[i]);
-        const isAnchor = (i === 0 || i === 3);
+        const isAnchor = (i === 0 || i === numPoints - 1);
         html += `<circle cx="${x}" cy="${y}" r="3.5" fill="${isAnchor ? 'var(--text-tertiary)' : '#7c3aed'}" stroke="var(--bg-primary)" stroke-width="1.5"/>`;
         html += `<text x="${x}" y="${y - 8}" text-anchor="middle" font-size="9" fill="var(--text-secondary)" font-family="'SF Mono', Monaco, monospace">${r(vals[i])}</text>`;
         html += `<text x="${x}" y="${svgH - 6}" text-anchor="middle" font-size="9" fill="var(--text-tertiary)">${points[i].label}</text>`;
@@ -2264,33 +2739,28 @@
         <span class="deviation-overlay-legend-item"><span class="deviation-overlay-legend-swatch" style="background: var(--border-strong); opacity: 0.4;"></span>Linear (clamp)</span>
       </div>`;
 
-      // Segment table — show value deltas per segment
-      const deltas = [];
-      for (let i = 0; i < 3; i++) {
-        deltas.push(r(vals[i + 1] - vals[i]));
+      // Segment table — show value deltas per segment (dynamic for any mode count)
+      html += `<table class="deviation-overlay-table">`;
+      html += `<tr><th>Segment</th><th>From</th><th>To</th><th>Delta</th></tr>`;
+      for (let i = 0; i < numPoints - 1; i++) {
+        const delta = r(vals[i + 1] - vals[i]);
+        html += `<tr><td>${escapeHtml(points[i].label)} \u2192 ${escapeHtml(points[i + 1].label)}</td><td>${r(vals[i])}</td><td>${r(vals[i + 1])}</td><td>${delta > 0 ? '+' : ''}${delta}</td></tr>`;
       }
-
-      html += `<table class="deviation-overlay-table">
-        <tr><th>Segment</th><th>From</th><th>To</th><th>Delta</th></tr>
-        <tr><td>Mobile \u2192 Tablet</td><td>${r(vals[0])}</td><td>${r(vals[1])}</td><td>${deltas[0] > 0 ? '+' : ''}${deltas[0]}</td></tr>
-        <tr><td>Tablet \u2192 Laptop</td><td>${r(vals[1])}</td><td>${r(vals[2])}</td><td>${deltas[1] > 0 ? '+' : ''}${deltas[1]}</td></tr>
-        <tr><td>Laptop \u2192 Desktop</td><td>${r(vals[2])}</td><td>${r(vals[3])}</td><td>${deltas[2] > 0 ? '+' : ''}${deltas[2]}</td></tr>
-      </table>`;
+      html += `</table>`;
 
       deviationOverlayEl.innerHTML = html;
       deviationOverlayEl.style.display = 'block';
+      deviationOverlayEl.style.opacity = '0';
 
       // Position overlay near the anchor element, within window bounds
       const anchorRect = anchorEl.getBoundingClientRect();
       const overlayW = 260;
 
-      // Horizontal: position to the left of the edge case panel
-      const panelEdge = document.getElementById('panel-edge');
-      const panelRect = panelEdge ? panelEdge.getBoundingClientRect() : anchorRect;
-      let left = panelRect.left - overlayW - 8;
-      // If not enough room on the left, fall back to right side
+      // Horizontal: position near the hovered bar chart
+      let left = anchorRect.left - overlayW - 8;
+      // If not enough room on the left, try right of anchor
       if (left < 8) {
-        left = panelRect.right + 8;
+        left = anchorRect.right + 8;
       }
       left = Math.max(8, Math.min(left, window.innerWidth - overlayW - 8));
 
@@ -2312,19 +2782,22 @@
 
       deviationOverlayEl.style.top = top + 'px';
       deviationOverlayEl.style.left = left + 'px';
+      requestAnimationFrame(function() { deviationOverlayEl.style.opacity = '1'; });
     }
 
     function hideDeviationOverlay() {
-      deviationOverlayEl.style.display = 'none';
+      deviationOverlayEl.style.opacity = '0';
+      setTimeout(function() { deviationOverlayEl.style.display = 'none'; }, 150);
     }
 
     // Summary of all detection selections
     function updateDetectionSummary() {
       const vCount = Object.values(viewportSelections).filter(v => v).length;
       const nCount = Object.values(nonLinearSelections).filter(v => v).length;
+      const nTotal = nonLinearCandidates.length;
       const parts = [];
       if (vCount > 0) parts.push(vCount + ' viewport');
-      if (nCount > 0) parts.push(nCount + ' non-linear');
+      if (nCount > 0) parts.push(nCount + '/' + nTotal + ' piecewise');
       // Proportions are always-on — show as info if any detected
       if (proportionCandidates.length > 0) parts.push(proportionCandidates.length + ' proportions (auto)');
 
@@ -2336,6 +2809,9 @@
     }
 
     window.updateNonLinearSelection = updateNonLinearSelection;
+    window.toggleNonLinearCollection = toggleNonLinearCollection;
+    window.toggleNonLinearGroup = toggleNonLinearGroup;
+    window.toggleNonLinearAccordion = toggleNonLinearAccordion;
 
     // ============================================
     // OUTPUT MODE CHANGE
@@ -2826,7 +3302,16 @@
           input: mainLayout.style.getPropertyValue('--col-input') || '',
           options: mainLayout.style.getPropertyValue('--col-options') || '',
           edge: mainLayout.style.getPropertyValue('--col-edge') || ''
-        }
+        },
+        nonLinearSelections: (function() {
+          var selected = [];
+          for (var cssName in nonLinearSelections) {
+            if (nonLinearSelections[cssName]) {
+              selected.push(cssName);
+            }
+          }
+          return selected;
+        })()
       };
     }
 
@@ -2872,6 +3357,10 @@
         if (s.columnWidths.options) mainLayout.style.setProperty('--col-options', s.columnWidths.options);
         if (s.columnWidths.edge) mainLayout.style.setProperty('--col-edge', s.columnWidths.edge);
       }
+      // Non-linear selections (deferred — applied when candidates are detected after Generate CSS)
+      if (s.nonLinearSelections && Array.isArray(s.nonLinearSelections)) {
+        window._pendingNonLinearSelections = s.nonLinearSelections;
+      }
     }
 
     function applyDefaultSettings() {
@@ -2902,6 +3391,10 @@
       mainLayout.style.removeProperty('--col-input');
       mainLayout.style.removeProperty('--col-options');
       mainLayout.style.removeProperty('--col-edge');
+      // Clear non-linear selections and collapse state
+      nonLinearSelections = {};
+      nonLinearCollapseState = {};
+      window._pendingNonLinearSelections = null;
     }
 
     function showSettingsStatus(text) {

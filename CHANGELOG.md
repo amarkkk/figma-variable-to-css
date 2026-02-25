@@ -4,6 +4,50 @@ All notable changes to Variable to CSS are documented in this file.
 
 ---
 
+## v1.9.1 — 2026-02-25
+
+### Summary
+
+Edge Cases panel refinement focused on usability, visual hierarchy, and polish. The piecewise scaling section is now scrollable, less noisy, and has smooth transitions. A new **Grid Proportions** section surfaces auto-detected proportion variables. All three edge case sections now have collapsible explanation boxes and dynamic selection badges.
+
+### UX Improvements
+
+#### Cleaner variable hierarchy
+
+Variable items in the piecewise scaling list no longer show bordered boxes or mode value decimals (e.g., "Desktop: 53.673785363 · Tablet: 42.12..."). The values are already visible in the bar chart. Group headers now have a subtle background to create clear visual weight: Collection (bold, sticky) → Group (semi-bold, bg-secondary) → Variable (transparent, indented).
+
+#### Dynamic selection badges
+
+Both the Piecewise Scaling and Viewport-Relative section headers now show a "selected/total" badge (e.g., "32/76") that updates in real-time as checkboxes are toggled. Replaces the static count and removes the "76 candidates. Use collection/group checkboxes for bulk selection." info text.
+
+#### Grid Proportions section
+
+New read-only section at the top of the Edge Cases column. Shows auto-detected proportion variables (half, third, quarter, etc.) with a green "auto" badge, collapsible "What are grid proportions?" explanation, and column count for each candidate. No opt-in needed — proportions are always applied.
+
+#### Viewport-relative explanation
+
+Replaced the static description text with a collapsible "What is viewport-relative scaling?" info box, matching the piecewise scaling section's pattern.
+
+#### Deviation overlay repositioned
+
+The informative popup (SVG slope chart + segment table) now appears adjacent to the hovered bar chart instead of at the far edge of the panel. Tooltip values capped at 2 decimal places.
+
+#### Smooth transitions
+
+Added subtle transitions throughout the edge cases panel: info box expand/collapse, deviation overlay fade in/out, collection/group accordion open/close, checkbox state changes, and hover states on candidate items and headers.
+
+### Bug Fixes
+
+#### Edge cases column now scrollable
+
+The entire edge cases column was not scrollable when piecewise scaling content exceeded the viewport height. Root cause was layered `overflow: hidden` on `.edge-case-panel`, `.detection-panel`, and `flex: 1` on `.detection-section` forcing equal height distribution. Fixed by making the column scrollable at the top level and removing flex constraints on sections.
+
+#### Accordion transitions now work
+
+Collection and group accordions had `display: none` toggling which completely disables CSS transitions. Replaced with `max-height: 0; opacity: 0` pattern so the expand/collapse animates smoothly. Removed inline `style="display:none"` from the render function in favor of CSS-only state via the `.collapsed` class.
+
+---
+
 ## v1.9 — 2026-02-20
 
 ### Summary

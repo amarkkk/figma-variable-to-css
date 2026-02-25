@@ -459,6 +459,12 @@ function handleGenerateCSS(options) {
         });
     });
 }
+function getVariableGroup(variableName) {
+    var lastSlash = variableName.lastIndexOf('/');
+    if (lastSlash === -1)
+        return '';
+    return variableName.substring(0, lastSlash);
+}
 function generateCSSName(varName, domain, layerType) {
     // Transform Figma variable name to CSS custom property name
     // IMPORTANT: Preserve intentional double hyphens (e.g., "stroke--width")
@@ -759,6 +765,9 @@ function generateFluidCSS(modes, variables, options, outputtedCSSNames, errors, 
                         nonLinearCandidates.push({
                             cssName: variable.cssName,
                             originalName: variable.name,
+                            collectionId: variable.collectionId,
+                            collectionName: variable.collectionName,
+                            group: getVariableGroup(variable.name),
                             deviationL: deviation.deviationL,
                             deviationT: deviation.deviationT,
                             maxDeviation: Math.max(deviation.deviationL, deviation.deviationT),
@@ -767,7 +776,8 @@ function generateFluidCSS(modes, variables, options, outputtedCSSNames, errors, 
                             laptopExpected: deviation.laptopExpected,
                             tabletVal: deviation.tabletVal,
                             tabletExpected: deviation.tabletExpected,
-                            mobileVal: deviation.mobileVal
+                            mobileVal: deviation.mobileVal,
+                            modeValues: deviation.modeValues
                         });
                     }
                 }
@@ -1134,57 +1144,69 @@ function getProportionColumnCount(variable) {
 function shouldUseProportion(variable, options) {
     return getProportionColumnCount(variable) !== null;
 }
-// Non-linear detection: 5% deviation threshold
-// If Laptop or Tablet values deviate >5% from the linear line between Desktop and Mobile,
-// the variable is flagged as non-linear (candidate for piecewise clamp)
-var NON_LINEAR_THRESHOLD = 0.05;
+// Non-linear detection: any numeric variable with at least one mode value
+// that differs from another is a candidate for piecewise clamp scaling.
+// No threshold — the user decides which variables to opt-in via the UI.
 function getNonLinearDeviation(variable, modes) {
-    // Need exactly 4 modes (Desktop, Laptop, Tablet, Mobile)
-    if (modes.length < 4)
+    // Need at least 2 modes
+    if (modes.length < 2)
         return null;
     // Must be FLOAT with no aliases across all modes
     if (variable.resolvedType !== 'FLOAT')
         return null;
+    var modeValues = [];
     for (var i = 0; i < modes.length; i++) {
         var val = variable.valuesByMode[modes[i].modeId];
         if (!val || val.isAlias)
             return null;
+        if (typeof val.resolved !== 'number')
+            return null;
+        modeValues.push({ name: modes[i].name, value: val.resolved, breakpointPx: modes[i].breakpointPx });
     }
-    var dVal = variable.valuesByMode[modes[0].modeId].resolved;
-    var lVal = variable.valuesByMode[modes[1].modeId].resolved;
-    var tVal = variable.valuesByMode[modes[2].modeId].resolved;
-    var mVal = variable.valuesByMode[modes[3].modeId].resolved;
-    if (typeof dVal !== 'number' || typeof lVal !== 'number' ||
-        typeof tVal !== 'number' || typeof mVal !== 'number')
+    // Skip if all mode values are identical (no scaling)
+    var allSame = true;
+    for (var i = 1; i < modeValues.length; i++) {
+        if (modeValues[i].value !== modeValues[0].value) {
+            allSame = false;
+            break;
+        }
+    }
+    if (allSame)
         return null;
-    // If desktop equals mobile (no scaling), skip
-    if (dVal === mVal)
-        return null;
-    var dVP = modes[0].breakpointPx;
-    var lVP = modes[1].breakpointPx;
-    var tVP = modes[2].breakpointPx;
-    var mVP = modes[3].breakpointPx;
-    // Calculate expected linear values at Laptop and Tablet
-    var slope = (dVal - mVal) / (dVP - mVP);
-    var expectedL = mVal + slope * (lVP - mVP);
-    var expectedT = mVal + slope * (tVP - mVP);
-    // Calculate deviation as fraction of the total range
-    var range = Math.abs(dVal - mVal);
-    var deviationL = Math.abs(lVal - expectedL) / range;
-    var deviationT = Math.abs(tVal - expectedT) / range;
-    // Only flag if either deviation exceeds threshold
-    if (deviationL < NON_LINEAR_THRESHOLD && deviationT < NON_LINEAR_THRESHOLD) {
-        return null;
+    // Extract values for backward-compatible fields
+    var dVal = modeValues[0].value;
+    var mVal = modeValues[modeValues.length - 1].value;
+    var lVal = modeValues.length >= 2 ? modeValues[1].value : dVal;
+    var tVal = modeValues.length >= 3 ? modeValues[2].value : mVal;
+    // Calculate deviation data (for 4-mode case, used by visualization)
+    var deviationL = 0;
+    var deviationT = 0;
+    var laptopExpected = lVal;
+    var tabletExpected = tVal;
+    if (modes.length >= 4 && dVal !== mVal) {
+        var dVP = modes[0].breakpointPx;
+        var lVP = modes[1].breakpointPx;
+        var tVP = modes[2].breakpointPx;
+        var mVP = modes[3].breakpointPx;
+        var slope = (dVal - mVal) / (dVP - mVP);
+        laptopExpected = mVal + slope * (lVP - mVP);
+        tabletExpected = mVal + slope * (tVP - mVP);
+        var range = Math.abs(dVal - mVal);
+        if (range > 0) {
+            deviationL = Math.abs(lVal - laptopExpected) / range;
+            deviationT = Math.abs(tVal - tabletExpected) / range;
+        }
     }
     return {
         deviationL: deviationL,
         deviationT: deviationT,
         desktopVal: dVal,
         laptopVal: lVal,
-        laptopExpected: expectedL,
+        laptopExpected: laptopExpected,
         tabletVal: tVal,
-        tabletExpected: expectedT,
-        mobileVal: mVal
+        tabletExpected: tabletExpected,
+        mobileVal: mVal,
+        modeValues: modeValues
     };
 }
 function shouldUsePiecewiseClamp(variable, options) {
