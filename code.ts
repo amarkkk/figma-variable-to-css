@@ -1060,10 +1060,12 @@ function generateFluidCSS(
             lines.push('  ' + variable.cssName + ': ' + cssValue + ';');
           }
         } else if (shouldUsePiecewiseClamp(variable, options)) {
-          // Piecewise clamp: Desktop→Laptop segment in :root
+          // Piecewise clamp: largest segment in :root for desktop-first, smallest for mobile-first
           nonLinearVars.push(variable.cssName);
           lines.push('  /* Piecewise clamp: non-linear scaling (3 segments) */');
-          var piecewiseRootValue = generatePiecewiseClampValue(modes[0], modes[1], variable);
+          var piecewiseRootValue = isDesktopFirst
+            ? generatePiecewiseClampValue(modes[0], modes[1], variable)
+            : generatePiecewiseClampValue(modes[modes.length - 1], modes[modes.length - 2], variable);
           lines.push('  ' + variable.cssName + ': ' + piecewiseRootValue + ';');
         } else {
           var fluidResult = generateFluidValue(modes, variable, options, viewportRelativeVars);

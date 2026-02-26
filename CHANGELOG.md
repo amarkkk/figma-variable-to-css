@@ -4,6 +4,43 @@ All notable changes to Variable to CSS are documented in this file.
 
 ---
 
+## v1.9.2 — 2026-02-26
+
+### Bug Fix
+
+#### Mobile-first piecewise clamp: wrong segment in `:root`
+
+When exporting with **Direction: Mobile-first**, piecewise-clamp tokens were placing the **Desktop→Laptop** (largest) clamp segment in the `:root` default block instead of the **Mobile→Tablet** (smallest) segment. The mobile segment was dropped from the output entirely — no block in the file contained it.
+
+**Impact:** Every piecewise-clamp token (DIMENSION, SPACE, and TYPO foundations) had the wrong default value at mobile viewports. For example, `--dimension-grid-margin` resolved to `103.26px` at 360px instead of `24px`, compressing the content container from the intended 312px down to 153px.
+
+**Root cause:** In `generateFluidCSS()`, the `:root` piecewise clamp value was hardcoded to `generatePiecewiseClampValue(modes[0], modes[1])` (Desktop→Laptop) regardless of the `breakpointDirection` option. The `isDesktopFirst` flag that correctly branched all other output paths was not applied here.
+
+**Fix:** The `:root` segment selection now branches on `isDesktopFirst`:
+- Desktop-first: `modes[0]` + `modes[1]` (Desktop→Laptop) → unchanged
+- Mobile-first: `modes[N-1]` + `modes[N-2]` (Mobile→Tablet) → fixed
+
+The `@media` blocks for intermediate segments were already correct and required no changes.
+
+**Before (mobile-first, buggy):**
+```css
+:root { --dimension-grid-margin: clamp(103.26px, calc(7.879vw - 4.37px), 128px); }  /* Desktop value — wrong */
+@media (min-width: 840px) { :root { --dimension-grid-margin: clamp(61.82px, ...); } }
+@media (min-width: 1366px) { :root { --dimension-grid-margin: clamp(103.26px, ...); } }  /* identical to :root — signal of the bug */
+/* Mobile clamp (24px) absent from output */
+```
+
+**After (mobile-first, fixed):**
+```css
+:root { --dimension-grid-margin: clamp(24px, calc(10.51vw - 26.43px), 61.82px); }  /* Mobile value ✓ */
+@media (min-width: 840px) { :root { --dimension-grid-margin: clamp(61.82px, calc(7.88vw - 4.36px), 103.26px); } }
+@media (min-width: 1366px) { :root { --dimension-grid-margin: clamp(103.26px, calc(7.88vw - 4.37px), 128px); } }
+```
+
+Desktop-first output is unaffected.
+
+---
+
 ## v1.9.1 — 2026-02-25
 
 ### Summary
