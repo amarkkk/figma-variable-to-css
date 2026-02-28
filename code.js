@@ -1,13 +1,5 @@
+"use strict";
 /// <reference types="@figma/plugin-typings" />
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 // Known breakpoint mode names and their viewport widths
 // These are the ACTUAL viewport widths where each breakpoint applies (for clamp calculations)
 // Media queries use (breakpointPx - 1) for max-width thresholds
@@ -30,127 +22,121 @@ figma.clientStorage.getAsync('windowSize').then(function (size) {
 // ============================================
 // MESSAGE HANDLERS
 // ============================================
-figma.ui.onmessage = function (msg) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            if (msg.type === 'resize') {
-                // No max constraints - only minimum size
-                var w = Math.max(600, msg.size.w);
-                var h = Math.max(450, msg.size.h);
-                figma.ui.resize(w, h);
-                figma.clientStorage.setAsync('windowSize', { w: w, h: h });
-                return;
-            }
-            if (msg.type === 'scan-collections') {
-                yield handleScanCollections();
-            }
-            else if (msg.type === 'scan-textstyles') {
-                yield handleScanTextStyles();
-            }
-            else if (msg.type === 'scan-breakpoints') {
-                var detected = yield extractBreakpointsFromVariables();
-                figma.ui.postMessage({
-                    type: 'breakpoints-detected',
-                    breakpoints: detected ? detected.breakpoints : null,
-                    sourceName: detected ? detected.sourceName : null,
-                    defaults: { desktop: BREAKPOINT_MODES['desktop'], laptop: BREAKPOINT_MODES['laptop'], tablet: BREAKPOINT_MODES['tablet'], mobile: BREAKPOINT_MODES['mobile'] }
-                });
-            }
-            else if (msg.type === 'generate-css') {
-                // Update breakpoints from UI if provided
-                if (msg.breakpoints) {
-                    if (msg.breakpoints.desktop)
-                        BREAKPOINT_MODES['desktop'] = msg.breakpoints.desktop;
-                    if (msg.breakpoints.laptop)
-                        BREAKPOINT_MODES['laptop'] = msg.breakpoints.laptop;
-                    if (msg.breakpoints.tablet)
-                        BREAKPOINT_MODES['tablet'] = msg.breakpoints.tablet;
-                    if (msg.breakpoints.mobile)
-                        BREAKPOINT_MODES['mobile'] = msg.breakpoints.mobile;
-                }
-                yield handleGenerateCSS(msg.options);
-            }
-            else if (msg.type === 'save-settings') {
-                figma.root.setPluginData('pluginSettings', JSON.stringify(msg.settings));
-                figma.ui.postMessage({ type: 'settings-saved' });
-            }
-            else if (msg.type === 'load-settings') {
-                var stored = figma.root.getPluginData('pluginSettings');
-                figma.ui.postMessage({
-                    type: 'settings-loaded',
-                    settings: stored ? JSON.parse(stored) : null
-                });
-            }
-            else if (msg.type === 'clear-settings') {
-                figma.root.setPluginData('pluginSettings', '');
-                figma.ui.postMessage({ type: 'settings-cleared' });
-            }
-            else if (msg.type === 'cancel') {
-                figma.closePlugin();
-            }
+figma.ui.onmessage = async function (msg) {
+    try {
+        if (msg.type === 'resize') {
+            // No max constraints - only minimum size
+            var w = Math.max(600, msg.size.w);
+            var h = Math.max(450, msg.size.h);
+            figma.ui.resize(w, h);
+            figma.clientStorage.setAsync('windowSize', { w: w, h: h });
+            return;
         }
-        catch (error) {
-            figma.ui.postMessage({ type: 'error', message: error.message });
+        if (msg.type === 'scan-collections') {
+            await handleScanCollections();
         }
-    });
+        else if (msg.type === 'scan-textstyles') {
+            await handleScanTextStyles();
+        }
+        else if (msg.type === 'scan-breakpoints') {
+            var detected = await extractBreakpointsFromVariables();
+            figma.ui.postMessage({
+                type: 'breakpoints-detected',
+                breakpoints: detected ? detected.breakpoints : null,
+                sourceName: detected ? detected.sourceName : null,
+                defaults: { desktop: BREAKPOINT_MODES['desktop'], laptop: BREAKPOINT_MODES['laptop'], tablet: BREAKPOINT_MODES['tablet'], mobile: BREAKPOINT_MODES['mobile'] }
+            });
+        }
+        else if (msg.type === 'generate-css') {
+            // Update breakpoints from UI if provided
+            if (msg.breakpoints) {
+                if (msg.breakpoints.desktop)
+                    BREAKPOINT_MODES['desktop'] = msg.breakpoints.desktop;
+                if (msg.breakpoints.laptop)
+                    BREAKPOINT_MODES['laptop'] = msg.breakpoints.laptop;
+                if (msg.breakpoints.tablet)
+                    BREAKPOINT_MODES['tablet'] = msg.breakpoints.tablet;
+                if (msg.breakpoints.mobile)
+                    BREAKPOINT_MODES['mobile'] = msg.breakpoints.mobile;
+            }
+            await handleGenerateCSS(msg.options);
+        }
+        else if (msg.type === 'save-settings') {
+            figma.root.setPluginData('pluginSettings', JSON.stringify(msg.settings));
+            figma.ui.postMessage({ type: 'settings-saved' });
+        }
+        else if (msg.type === 'load-settings') {
+            var stored = figma.root.getPluginData('pluginSettings');
+            figma.ui.postMessage({
+                type: 'settings-loaded',
+                settings: stored ? JSON.parse(stored) : null
+            });
+        }
+        else if (msg.type === 'clear-settings') {
+            figma.root.setPluginData('pluginSettings', '');
+            figma.ui.postMessage({ type: 'settings-cleared' });
+        }
+        else if (msg.type === 'cancel') {
+            figma.closePlugin();
+        }
+    }
+    catch (error) {
+        figma.ui.postMessage({ type: 'error', message: error.message });
+    }
 };
 // ============================================
 // COLLECTION SCANNING
 // ============================================
-function handleScanCollections() {
-    return __awaiter(this, void 0, void 0, function* () {
-        var collections = yield figma.variables.getLocalVariableCollectionsAsync();
-        var collectionInfos = [];
-        for (var i = 0; i < collections.length; i++) {
-            var collection = collections[i];
-            if (collection.remote)
-                continue;
-            var parsed = parseCollectionName(collection.name);
-            var modes = [];
-            for (var j = 0; j < collection.modes.length; j++) {
-                var m = collection.modes[j];
-                modes.push({
-                    modeId: m.modeId,
-                    name: m.name,
-                    breakpointPx: detectBreakpoint(m.name)
-                });
-            }
-            var modeType = detectModeType(modes);
-            collectionInfos.push({
-                id: collection.id,
-                name: collection.name,
-                domain: parsed.domain,
-                layer: parsed.layer,
-                layerType: parsed.layerType,
-                modes: modes,
-                modeType: modeType,
-                variableCount: collection.variableIds.length
+async function handleScanCollections() {
+    var collections = await figma.variables.getLocalVariableCollectionsAsync();
+    var collectionInfos = [];
+    for (var i = 0; i < collections.length; i++) {
+        var collection = collections[i];
+        if (collection.remote)
+            continue;
+        var parsed = parseCollectionName(collection.name);
+        var modes = [];
+        for (var j = 0; j < collection.modes.length; j++) {
+            var m = collection.modes[j];
+            modes.push({
+                modeId: m.modeId,
+                name: m.name,
+                breakpointPx: detectBreakpoint(m.name)
             });
         }
-        // Sort by domain and layer
-        collectionInfos.sort(function (a, b) {
-            if (a.domain !== b.domain)
-                return a.domain.localeCompare(b.domain);
-            return a.layer.localeCompare(b.layer);
+        var modeType = detectModeType(modes);
+        collectionInfos.push({
+            id: collection.id,
+            name: collection.name,
+            domain: parsed.domain,
+            layer: parsed.layer,
+            layerType: parsed.layerType,
+            modes: modes,
+            modeType: modeType,
+            variableCount: collection.variableIds.length
         });
-        var totalVariables = 0;
-        for (var i = 0; i < collectionInfos.length; i++) {
-            totalVariables += collectionInfos[i].variableCount;
-        }
-        figma.ui.postMessage({
-            type: 'collections-scanned',
-            collections: collectionInfos,
-            totalVariables: totalVariables
-        });
+    }
+    // Sort by domain and layer
+    collectionInfos.sort(function (a, b) {
+        if (a.domain !== b.domain)
+            return a.domain.localeCompare(b.domain);
+        return a.layer.localeCompare(b.layer);
+    });
+    var totalVariables = 0;
+    for (var i = 0; i < collectionInfos.length; i++) {
+        totalVariables += collectionInfos[i].variableCount;
+    }
+    figma.ui.postMessage({
+        type: 'collections-scanned',
+        collections: collectionInfos,
+        totalVariables: totalVariables
     });
 }
-function handleScanTextStyles() {
-    return __awaiter(this, void 0, void 0, function* () {
-        var textStyles = yield figma.getLocalTextStylesAsync();
-        figma.ui.postMessage({
-            type: 'textstyles-scanned',
-            count: textStyles.length
-        });
+async function handleScanTextStyles() {
+    var textStyles = await figma.getLocalTextStylesAsync();
+    figma.ui.postMessage({
+        type: 'textstyles-scanned',
+        count: textStyles.length
     });
 }
 function parseCollectionName(name) {
@@ -212,98 +198,96 @@ function detectModeType(modes) {
 }
 // Extract breakpoint values from Figma variables (viewport in Dimension Foundations)
 // Returns detected breakpoints and the source variable name, or null if not found
-function extractBreakpointsFromVariables() {
-    return __awaiter(this, void 0, void 0, function* () {
-        var collections = yield figma.variables.getLocalVariableCollectionsAsync();
-        for (var ci = 0; ci < collections.length; ci++) {
-            var collection = collections[ci];
-            if (collection.remote)
-                continue;
-            var parsed = parseCollectionName(collection.name);
-            // Look for Dimension Foundations collection
-            if (parsed.domain !== 'dimension' || parsed.layerType !== 'foundations')
-                continue;
-            // Must have multiple modes
-            if (collection.modes.length < 2)
-                continue;
-            // Check if modes are breakpoint-type
-            var bpKeys = Object.keys(BREAKPOINT_MODES);
-            var modeHasBP = true;
-            for (var mi = 0; mi < collection.modes.length; mi++) {
-                var modeLower = collection.modes[mi].name.toLowerCase();
-                var found = false;
-                for (var bi = 0; bi < bpKeys.length; bi++) {
-                    if (modeLower.indexOf(bpKeys[bi]) !== -1) {
-                        found = true;
-                        break;
-                    }
-                }
-                if (!found) {
-                    modeHasBP = false;
+async function extractBreakpointsFromVariables() {
+    var collections = await figma.variables.getLocalVariableCollectionsAsync();
+    for (var ci = 0; ci < collections.length; ci++) {
+        var collection = collections[ci];
+        if (collection.remote)
+            continue;
+        var parsed = parseCollectionName(collection.name);
+        // Look for Dimension Foundations collection
+        if (parsed.domain !== 'dimension' || parsed.layerType !== 'foundations')
+            continue;
+        // Must have multiple modes
+        if (collection.modes.length < 2)
+            continue;
+        // Check if modes are breakpoint-type
+        var bpKeys = Object.keys(BREAKPOINT_MODES);
+        var modeHasBP = true;
+        for (var mi = 0; mi < collection.modes.length; mi++) {
+            var modeLower = collection.modes[mi].name.toLowerCase();
+            var found = false;
+            for (var bi = 0; bi < bpKeys.length; bi++) {
+                if (modeLower.indexOf(bpKeys[bi]) !== -1) {
+                    found = true;
                     break;
                 }
             }
-            if (!modeHasBP)
-                continue;
-            // Scan variables for "viewport" in name (prefer "viewport--min", fall back to "viewport")
-            var viewportMinVar = null;
-            var viewportVar = null;
-            for (var vi = 0; vi < collection.variableIds.length; vi++) {
-                var varId = collection.variableIds[vi];
-                var variable = yield figma.variables.getVariableByIdAsync(varId);
-                if (!variable)
-                    continue;
-                if (variable.resolvedType !== 'FLOAT')
-                    continue;
-                var nameLower = variable.name.toLowerCase();
-                if (nameLower.indexOf('viewport') !== -1 && nameLower.indexOf('min') !== -1) {
-                    viewportMinVar = variable;
-                    break; // Prefer viewport--min
-                }
-                if (nameLower.indexOf('viewport') !== -1 && !viewportVar) {
-                    viewportVar = variable;
-                }
-            }
-            var targetVar = viewportMinVar || viewportVar;
-            if (!targetVar)
-                continue;
-            // Extract the value for each mode as the breakpoint
-            var breakpoints = {};
-            for (var mi = 0; mi < collection.modes.length; mi++) {
-                var mode = collection.modes[mi];
-                var modeLower = mode.name.toLowerCase();
-                var rawValue = targetVar.valuesByMode[mode.modeId];
-                // Resolve if alias
-                if (rawValue && typeof rawValue === 'object' && 'type' in rawValue
-                    && rawValue.type === 'VARIABLE_ALIAS') {
-                    try {
-                        var aliasVar = yield figma.variables.getVariableByIdAsync(rawValue.id);
-                        if (aliasVar) {
-                            var aliasCollection = yield figma.variables.getVariableCollectionByIdAsync(aliasVar.variableCollectionId);
-                            if (aliasCollection && aliasCollection.modes.length > 0) {
-                                rawValue = aliasVar.valuesByMode[aliasCollection.modes[0].modeId];
-                            }
-                        }
-                    }
-                    catch (e) {
-                        // Skip if alias resolution fails
-                    }
-                }
-                if (typeof rawValue === 'number') {
-                    for (var bi = 0; bi < bpKeys.length; bi++) {
-                        if (modeLower.indexOf(bpKeys[bi]) !== -1) {
-                            breakpoints[bpKeys[bi]] = rawValue;
-                        }
-                    }
-                }
-            }
-            // Only return if we found at least 2 breakpoints
-            if (Object.keys(breakpoints).length >= 2) {
-                return { breakpoints: breakpoints, sourceName: targetVar.name };
+            if (!found) {
+                modeHasBP = false;
+                break;
             }
         }
-        return null;
-    });
+        if (!modeHasBP)
+            continue;
+        // Scan variables for "viewport" in name (prefer "viewport--min", fall back to "viewport")
+        var viewportMinVar = null;
+        var viewportVar = null;
+        for (var vi = 0; vi < collection.variableIds.length; vi++) {
+            var varId = collection.variableIds[vi];
+            var variable = await figma.variables.getVariableByIdAsync(varId);
+            if (!variable)
+                continue;
+            if (variable.resolvedType !== 'FLOAT')
+                continue;
+            var nameLower = variable.name.toLowerCase();
+            if (nameLower.indexOf('viewport') !== -1 && nameLower.indexOf('min') !== -1) {
+                viewportMinVar = variable;
+                break; // Prefer viewport--min
+            }
+            if (nameLower.indexOf('viewport') !== -1 && !viewportVar) {
+                viewportVar = variable;
+            }
+        }
+        var targetVar = viewportMinVar || viewportVar;
+        if (!targetVar)
+            continue;
+        // Extract the value for each mode as the breakpoint
+        var breakpoints = {};
+        for (var mi = 0; mi < collection.modes.length; mi++) {
+            var mode = collection.modes[mi];
+            var modeLower = mode.name.toLowerCase();
+            var rawValue = targetVar.valuesByMode[mode.modeId];
+            // Resolve if alias
+            if (rawValue && typeof rawValue === 'object' && 'type' in rawValue
+                && rawValue.type === 'VARIABLE_ALIAS') {
+                try {
+                    var aliasVar = await figma.variables.getVariableByIdAsync(rawValue.id);
+                    if (aliasVar) {
+                        var aliasCollection = await figma.variables.getVariableCollectionByIdAsync(aliasVar.variableCollectionId);
+                        if (aliasCollection && aliasCollection.modes.length > 0) {
+                            rawValue = aliasVar.valuesByMode[aliasCollection.modes[0].modeId];
+                        }
+                    }
+                }
+                catch (e) {
+                    // Skip if alias resolution fails
+                }
+            }
+            if (typeof rawValue === 'number') {
+                for (var bi = 0; bi < bpKeys.length; bi++) {
+                    if (modeLower.indexOf(bpKeys[bi]) !== -1) {
+                        breakpoints[bpKeys[bi]] = rawValue;
+                    }
+                }
+            }
+        }
+        // Only return if we found at least 2 breakpoints
+        if (Object.keys(breakpoints).length >= 2) {
+            return { breakpoints: breakpoints, sourceName: targetVar.name };
+        }
+    }
+    return null;
 }
 // Check if a variable has different values/aliases across modes
 function hasModeVariance(variable, modes, options) {
@@ -340,123 +324,121 @@ function needsMediaQueries(variable, modes, options) {
 // ============================================
 // CSS GENERATION
 // ============================================
-function handleGenerateCSS(options) {
-    return __awaiter(this, void 0, void 0, function* () {
-        var collections = yield figma.variables.getLocalVariableCollectionsAsync();
-        var allVariables = [];
-        var variableMap = new Map();
-        var errors = [];
-        // Track CSS names to detect duplicates and circular references
-        var outputtedCSSNames = new Set();
-        // First pass: collect all variables
-        for (var ci = 0; ci < collections.length; ci++) {
-            var collection = collections[ci];
-            if (collection.remote)
+async function handleGenerateCSS(options) {
+    var collections = await figma.variables.getLocalVariableCollectionsAsync();
+    var allVariables = [];
+    var variableMap = new Map();
+    var errors = [];
+    // Track CSS names to detect duplicates and circular references
+    var outputtedCSSNames = new Set();
+    // First pass: collect all variables
+    for (var ci = 0; ci < collections.length; ci++) {
+        var collection = collections[ci];
+        if (collection.remote)
+            continue;
+        var parsed = parseCollectionName(collection.name);
+        var domain = parsed.domain;
+        var layerType = parsed.layerType;
+        for (var vi = 0; vi < collection.variableIds.length; vi++) {
+            var varId = collection.variableIds[vi];
+            var variable = await figma.variables.getVariableByIdAsync(varId);
+            if (!variable)
                 continue;
-            var parsed = parseCollectionName(collection.name);
-            var domain = parsed.domain;
-            var layerType = parsed.layerType;
-            for (var vi = 0; vi < collection.variableIds.length; vi++) {
-                var varId = collection.variableIds[vi];
-                var variable = yield figma.variables.getVariableByIdAsync(varId);
-                if (!variable)
-                    continue;
-                var cssName = generateCSSName(variable.name, domain, layerType);
-                var valuesByMode = {};
-                for (var mi = 0; mi < collection.modes.length; mi++) {
-                    var mode = collection.modes[mi];
-                    var rawValue = variable.valuesByMode[mode.modeId];
-                    valuesByMode[mode.modeId] = yield processValue(rawValue, variable.resolvedType, options);
-                }
-                var isAlias = false;
-                var values = Object.keys(valuesByMode);
-                for (var ki = 0; ki < values.length; ki++) {
-                    if (valuesByMode[values[ki]].isAlias) {
-                        isAlias = true;
-                        break;
-                    }
-                }
-                var varInfo = {
-                    id: variable.id,
-                    name: variable.name,
-                    description: variable.description || '',
-                    collectionId: collection.id,
-                    collectionName: collection.name,
-                    domain: domain,
-                    layerType: layerType,
-                    resolvedType: variable.resolvedType,
-                    valuesByMode: valuesByMode,
-                    isAlias: isAlias,
-                    cssName: cssName
-                };
-                allVariables.push(varInfo);
-                variableMap.set(variable.id, varInfo);
+            var cssName = generateCSSName(variable.name, domain, layerType);
+            var valuesByMode = {};
+            for (var mi = 0; mi < collection.modes.length; mi++) {
+                var mode = collection.modes[mi];
+                var rawValue = variable.valuesByMode[mode.modeId];
+                valuesByMode[mode.modeId] = await processValue(rawValue, variable.resolvedType, options);
             }
+            var isAlias = false;
+            var values = Object.keys(valuesByMode);
+            for (var ki = 0; ki < values.length; ki++) {
+                if (valuesByMode[values[ki]].isAlias) {
+                    isAlias = true;
+                    break;
+                }
+            }
+            var varInfo = {
+                id: variable.id,
+                name: variable.name,
+                description: variable.description || '',
+                collectionId: collection.id,
+                collectionName: collection.name,
+                domain: domain,
+                layerType: layerType,
+                resolvedType: variable.resolvedType,
+                valuesByMode: valuesByMode,
+                isAlias: isAlias,
+                cssName: cssName
+            };
+            allVariables.push(varInfo);
+            variableMap.set(variable.id, varInfo);
         }
-        // Second pass: resolve alias names
-        for (var ai = 0; ai < allVariables.length; ai++) {
-            var varInfo = allVariables[ai];
-            var modeIds = Object.keys(varInfo.valuesByMode);
-            for (var mi = 0; mi < modeIds.length; mi++) {
-                var modeId = modeIds[mi];
-                var value = varInfo.valuesByMode[modeId];
-                if (value.isAlias && value.aliasId) {
-                    var target = variableMap.get(value.aliasId);
-                    if (target) {
-                        value.aliasName = target.cssName;
-                    }
-                    else {
-                        errors.push('Broken alias: ' + varInfo.name + ' references unknown variable');
-                    }
+    }
+    // Second pass: resolve alias names
+    for (var ai = 0; ai < allVariables.length; ai++) {
+        var varInfo = allVariables[ai];
+        var modeIds = Object.keys(varInfo.valuesByMode);
+        for (var mi = 0; mi < modeIds.length; mi++) {
+            var modeId = modeIds[mi];
+            var value = varInfo.valuesByMode[modeId];
+            if (value.isAlias && value.aliasId) {
+                var target = variableMap.get(value.aliasId);
+                if (target) {
+                    value.aliasName = target.cssName;
+                }
+                else {
+                    errors.push('Broken alias: ' + varInfo.name + ' references unknown variable');
                 }
             }
         }
-        // Group by collection for ordered output
-        var collectionGroups = groupByCollection(allVariables, collections);
-        // Track viewport-relative variables and candidates for reporting
-        var viewportRelativeVars = [];
-        var viewportCandidates = [];
-        // Track proportion variables and candidates for reporting
-        var proportionVars = [];
-        var proportionCandidates = [];
-        // Track non-linear variables and candidates for reporting
-        var nonLinearVars = [];
-        var nonLinearCandidates = [];
-        // Generate CSS with deduplication
-        var css = generateCSSOutput(collectionGroups, collections, options, outputtedCSSNames, errors, viewportRelativeVars, viewportCandidates, proportionVars, proportionCandidates, nonLinearVars, nonLinearCandidates);
-        // Append text styles section if enabled
-        var textStyleCount = 0;
-        if (options.includeTextStyles) {
-            var allTextStyles = yield figma.getLocalTextStylesAsync();
-            textStyleCount = allTextStyles.length;
-            var textStyleLines = yield generateTextStyleCSS(options, variableMap);
-            if (textStyleLines.length > 0) {
-                css += '\n' + textStyleLines.join('\n');
+    }
+    // Group by collection for ordered output
+    var collectionGroups = groupByCollection(allVariables, collections);
+    // Track viewport-relative variables and candidates for reporting
+    var viewportRelativeVars = [];
+    var viewportCandidates = [];
+    // Track proportion variables and candidates for reporting
+    var proportionVars = [];
+    var proportionCandidates = [];
+    // Track non-linear variables and candidates for reporting
+    var nonLinearVars = [];
+    var nonLinearCandidates = [];
+    // Generate CSS with deduplication
+    var css = generateCSSOutput(collectionGroups, collections, options, outputtedCSSNames, errors, viewportRelativeVars, viewportCandidates, proportionVars, proportionCandidates, nonLinearVars, nonLinearCandidates);
+    // Append text styles section if enabled
+    var textStyleCount = 0;
+    if (options.includeTextStyles) {
+        var allTextStyles = await figma.getLocalTextStylesAsync();
+        textStyleCount = allTextStyles.length;
+        var textStyleLines = await generateTextStyleCSS(options, variableMap);
+        if (textStyleLines.length > 0) {
+            css += '\n' + textStyleLines.join('\n');
+        }
+    }
+    var nonRemoteCount = 0;
+    for (var i = 0; i < collections.length; i++) {
+        if (!collections[i].remote)
+            nonRemoteCount++;
+    }
+    figma.ui.postMessage({
+        type: 'css-generated',
+        output: {
+            css: css,
+            stats: {
+                collections: nonRemoteCount,
+                variables: allVariables.length,
+                errors: errors,
+                viewportRelativeVars: viewportRelativeVars,
+                viewportCandidates: viewportCandidates,
+                proportionVars: proportionVars,
+                proportionCandidates: proportionCandidates,
+                nonLinearVars: nonLinearVars,
+                nonLinearCandidates: nonLinearCandidates,
+                textStyleCount: textStyleCount
             }
         }
-        var nonRemoteCount = 0;
-        for (var i = 0; i < collections.length; i++) {
-            if (!collections[i].remote)
-                nonRemoteCount++;
-        }
-        figma.ui.postMessage({
-            type: 'css-generated',
-            output: {
-                css: css,
-                stats: {
-                    collections: nonRemoteCount,
-                    variables: allVariables.length,
-                    errors: errors,
-                    viewportRelativeVars: viewportRelativeVars,
-                    viewportCandidates: viewportCandidates,
-                    proportionVars: proportionVars,
-                    proportionCandidates: proportionCandidates,
-                    nonLinearVars: nonLinearVars,
-                    nonLinearCandidates: nonLinearCandidates,
-                    textStyleCount: textStyleCount
-                }
-            }
-        });
     });
 }
 function getVariableGroup(variableName) {
@@ -508,45 +490,43 @@ function generateCSSName(varName, domain, layerType) {
     }
     return '--' + cssName;
 }
-function processValue(rawValue, type, options) {
-    return __awaiter(this, void 0, void 0, function* () {
-        // Check if it's an alias
-        if (rawValue && typeof rawValue === 'object' && 'type' in rawValue && rawValue.type === 'VARIABLE_ALIAS') {
-            return {
-                raw: rawValue,
-                isAlias: true,
-                aliasId: rawValue.id,
-                resolved: null
-            };
-        }
-        // Process based on type
-        var resolved = null;
-        if (type === 'COLOR') {
-            if (rawValue && typeof rawValue === 'object' && 'r' in rawValue) {
-                resolved = options.colorFormat === 'oklch'
-                    ? rgbToOklch(rawValue)
-                    : rgbToHex(rawValue);
-            }
-        }
-        else if (type === 'FLOAT') {
-            if (typeof rawValue === 'number') {
-                resolved = rawValue;
-            }
-        }
-        else if (type === 'STRING') {
-            if (typeof rawValue === 'string') {
-                resolved = rawValue;
-            }
-        }
-        else if (type === 'BOOLEAN') {
-            resolved = rawValue ? 1 : 0;
-        }
+async function processValue(rawValue, type, options) {
+    // Check if it's an alias
+    if (rawValue && typeof rawValue === 'object' && 'type' in rawValue && rawValue.type === 'VARIABLE_ALIAS') {
         return {
             raw: rawValue,
-            isAlias: false,
-            resolved: resolved
+            isAlias: true,
+            aliasId: rawValue.id,
+            resolved: null
         };
-    });
+    }
+    // Process based on type
+    var resolved = null;
+    if (type === 'COLOR') {
+        if (rawValue && typeof rawValue === 'object' && 'r' in rawValue) {
+            resolved = options.colorFormat === 'oklch'
+                ? rgbToOklch(rawValue)
+                : rgbToHex(rawValue);
+        }
+    }
+    else if (type === 'FLOAT') {
+        if (typeof rawValue === 'number') {
+            resolved = rawValue;
+        }
+    }
+    else if (type === 'STRING') {
+        if (typeof rawValue === 'string') {
+            resolved = rawValue;
+        }
+    }
+    else if (type === 'BOOLEAN') {
+        resolved = rawValue ? 1 : 0;
+    }
+    return {
+        raw: rawValue,
+        isAlias: false,
+        resolved: resolved
+    };
 }
 function rgbToHex(color) {
     function toHex(n) {
@@ -1677,70 +1657,68 @@ function resolveTextStyleProperty(style, property, variableMap) {
     return { value: formatRawTextProperty(style, property), varRef: null };
 }
 // Generate the text styles CSS section
-function generateTextStyleCSS(options, variableMap) {
-    return __awaiter(this, void 0, void 0, function* () {
-        var lines = [];
-        var textStyles = yield figma.getLocalTextStylesAsync();
-        if (textStyles.length === 0)
-            return lines;
-        lines.push('/* --------------------------------------------------------------------------');
-        lines.push('   TEXT STYLES — Composite typography tokens from Figma Text Styles');
-        lines.push('   Format: ' + (options.textStyleFormat === 'scss-mixin' ? 'SCSS Mixins' : options.textStyleFormat === 'css-class' ? 'CSS Classes' : 'CSS Custom Properties'));
-        lines.push('   -------------------------------------------------------------------------- */');
-        lines.push('');
-        // For CSS vars format, wrap in :root
-        if (options.textStyleFormat === 'css-vars') {
-            lines.push(':root {');
-        }
-        for (var i = 0; i < textStyles.length; i++) {
-            var style = textStyles[i];
-            var cssName = generateTextStyleName(style.name);
-            var family = resolveTextStyleProperty(style, 'fontFamily', variableMap);
-            var size = resolveTextStyleProperty(style, 'fontSize', variableMap);
-            var weight = resolveTextStyleProperty(style, 'fontWeight', variableMap);
-            var fontStyle = resolveTextStyleProperty(style, 'fontStyle', variableMap);
-            var lineHeight = resolveTextStyleProperty(style, 'lineHeight', variableMap);
-            var letterSpacing = resolveTextStyleProperty(style, 'letterSpacing', variableMap);
-            var familyVal = family.varRef || family.value;
-            var sizeVal = size.varRef || size.value;
-            var weightVal = weight.varRef || weight.value;
-            var fontStyleVal = fontStyle.varRef || fontStyle.value;
-            var lineHeightVal = lineHeight.varRef || lineHeight.value;
-            var letterSpacingVal = letterSpacing.varRef || letterSpacing.value;
-            if (options.textStyleFormat === 'scss-mixin') {
-                lines.push('@mixin ' + cssName + ' {');
-                lines.push('  font-family: ' + familyVal + ';');
-                lines.push('  font-size: ' + sizeVal + ';');
-                lines.push('  font-style: ' + fontStyleVal + ';');
-                lines.push('  font-weight: ' + weightVal + ';');
-                lines.push('  line-height: ' + lineHeightVal + ';');
-                lines.push('  letter-spacing: ' + letterSpacingVal + ';');
-                lines.push('}');
-            }
-            else if (options.textStyleFormat === 'css-class') {
-                lines.push('.' + cssName + ' {');
-                lines.push('  font-family: ' + familyVal + ';');
-                lines.push('  font-size: ' + sizeVal + ';');
-                lines.push('  font-style: ' + fontStyleVal + ';');
-                lines.push('  font-weight: ' + weightVal + ';');
-                lines.push('  line-height: ' + lineHeightVal + ';');
-                lines.push('  letter-spacing: ' + letterSpacingVal + ';');
-                lines.push('}');
-            }
-            else if (options.textStyleFormat === 'css-vars') {
-                lines.push('  --' + cssName + '-family: ' + familyVal + ';');
-                lines.push('  --' + cssName + '-size: ' + sizeVal + ';');
-                lines.push('  --' + cssName + '-style: ' + fontStyleVal + ';');
-                lines.push('  --' + cssName + '-weight: ' + weightVal + ';');
-                lines.push('  --' + cssName + '-line-height: ' + lineHeightVal + ';');
-                lines.push('  --' + cssName + '-letter-spacing: ' + letterSpacingVal + ';');
-            }
-            lines.push('');
-        }
-        // Close :root for CSS vars format
-        if (options.textStyleFormat === 'css-vars') {
+async function generateTextStyleCSS(options, variableMap) {
+    var lines = [];
+    var textStyles = await figma.getLocalTextStylesAsync();
+    if (textStyles.length === 0)
+        return lines;
+    lines.push('/* --------------------------------------------------------------------------');
+    lines.push('   TEXT STYLES — Composite typography tokens from Figma Text Styles');
+    lines.push('   Format: ' + (options.textStyleFormat === 'scss-mixin' ? 'SCSS Mixins' : options.textStyleFormat === 'css-class' ? 'CSS Classes' : 'CSS Custom Properties'));
+    lines.push('   -------------------------------------------------------------------------- */');
+    lines.push('');
+    // For CSS vars format, wrap in :root
+    if (options.textStyleFormat === 'css-vars') {
+        lines.push(':root {');
+    }
+    for (var i = 0; i < textStyles.length; i++) {
+        var style = textStyles[i];
+        var cssName = generateTextStyleName(style.name);
+        var family = resolveTextStyleProperty(style, 'fontFamily', variableMap);
+        var size = resolveTextStyleProperty(style, 'fontSize', variableMap);
+        var weight = resolveTextStyleProperty(style, 'fontWeight', variableMap);
+        var fontStyle = resolveTextStyleProperty(style, 'fontStyle', variableMap);
+        var lineHeight = resolveTextStyleProperty(style, 'lineHeight', variableMap);
+        var letterSpacing = resolveTextStyleProperty(style, 'letterSpacing', variableMap);
+        var familyVal = family.varRef || family.value;
+        var sizeVal = size.varRef || size.value;
+        var weightVal = weight.varRef || weight.value;
+        var fontStyleVal = fontStyle.varRef || fontStyle.value;
+        var lineHeightVal = lineHeight.varRef || lineHeight.value;
+        var letterSpacingVal = letterSpacing.varRef || letterSpacing.value;
+        if (options.textStyleFormat === 'scss-mixin') {
+            lines.push('@mixin ' + cssName + ' {');
+            lines.push('  font-family: ' + familyVal + ';');
+            lines.push('  font-size: ' + sizeVal + ';');
+            lines.push('  font-style: ' + fontStyleVal + ';');
+            lines.push('  font-weight: ' + weightVal + ';');
+            lines.push('  line-height: ' + lineHeightVal + ';');
+            lines.push('  letter-spacing: ' + letterSpacingVal + ';');
             lines.push('}');
         }
-        return lines;
-    });
+        else if (options.textStyleFormat === 'css-class') {
+            lines.push('.' + cssName + ' {');
+            lines.push('  font-family: ' + familyVal + ';');
+            lines.push('  font-size: ' + sizeVal + ';');
+            lines.push('  font-style: ' + fontStyleVal + ';');
+            lines.push('  font-weight: ' + weightVal + ';');
+            lines.push('  line-height: ' + lineHeightVal + ';');
+            lines.push('  letter-spacing: ' + letterSpacingVal + ';');
+            lines.push('}');
+        }
+        else if (options.textStyleFormat === 'css-vars') {
+            lines.push('  --' + cssName + '-family: ' + familyVal + ';');
+            lines.push('  --' + cssName + '-size: ' + sizeVal + ';');
+            lines.push('  --' + cssName + '-style: ' + fontStyleVal + ';');
+            lines.push('  --' + cssName + '-weight: ' + weightVal + ';');
+            lines.push('  --' + cssName + '-line-height: ' + lineHeightVal + ';');
+            lines.push('  --' + cssName + '-letter-spacing: ' + letterSpacingVal + ';');
+        }
+        lines.push('');
+    }
+    // Close :root for CSS vars format
+    if (options.textStyleFormat === 'css-vars') {
+        lines.push('}');
+    }
+    return lines;
 }

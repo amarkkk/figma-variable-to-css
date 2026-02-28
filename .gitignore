@@ -1,22 +1,3 @@
-# Dependencies
 node_modules/
-
-# Build artifacts (but not code.js - needed for plugin to work)
-code.js.map
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS
 .DS_Store
-Thumbs.db
-
-# Logs
-*.log
-npm-debug.log*
-
-#Docs
-docs/
+*.js.map

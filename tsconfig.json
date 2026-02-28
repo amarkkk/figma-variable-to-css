@@ -1,11 +1,14 @@
 {
   "compilerOptions": {
-    "target": "ES6",
-    "lib": ["ES6"],
-    "strict": false,
-    "noImplicitAny": false,
+    "target": "ES2017",
+    "lib": ["ES2017"],
+    "module": "CommonJS",
+    "strict": true,
     "skipLibCheck": true,
-    "typeRoots": ["./node_modules/@figma/plugin-typings", "./node_modules/@types"]
+    "typeRoots": [
+      "./node_modules/@figma",
+      "./node_modules/@types"
+    ]
   },
   "include": ["code.ts"]
 }
