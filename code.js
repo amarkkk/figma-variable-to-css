@@ -19,17 +19,29 @@ figma.clientStorage.getAsync('windowSize').then(function (size) {
     if (size)
         figma.ui.resize(size.w, size.h);
 }).catch(function () { });
+// Restore theme
+figma.clientStorage.getAsync('theme').then(function (theme) {
+    if (theme)
+        figma.ui.postMessage({ type: 'theme-loaded', theme: theme });
+}).catch(function () { });
 // ============================================
 // MESSAGE HANDLERS
 // ============================================
 figma.ui.onmessage = async function (msg) {
     try {
         if (msg.type === 'resize') {
-            // No max constraints - only minimum size
-            var w = Math.max(600, msg.size.w);
-            var h = Math.max(450, msg.size.h);
+            var w = Math.max(500, msg.size.w);
+            var h = Math.max(400, msg.size.h);
             figma.ui.resize(w, h);
             figma.clientStorage.setAsync('windowSize', { w: w, h: h });
+            return;
+        }
+        if (msg.type === 'theme-change') {
+            figma.clientStorage.setAsync('theme', msg.theme);
+            return;
+        }
+        if (msg.type === 'close') {
+            figma.closePlugin();
             return;
         }
         if (msg.type === 'scan-collections') {
@@ -37,6 +49,12 @@ figma.ui.onmessage = async function (msg) {
         }
         else if (msg.type === 'scan-textstyles') {
             await handleScanTextStyles();
+        }
+        else if (msg.type === 'scan-paintstyles') {
+            await handleScanPaintStyles();
+        }
+        else if (msg.type === 'scan-effectstyles') {
+            await handleScanEffectStyles();
         }
         else if (msg.type === 'scan-breakpoints') {
             var detected = await extractBreakpointsFromVariables();
@@ -137,6 +155,30 @@ async function handleScanTextStyles() {
     figma.ui.postMessage({
         type: 'textstyles-scanned',
         count: textStyles.length
+    });
+}
+async function handleScanPaintStyles() {
+    var paintStyles = await figma.getLocalPaintStylesAsync();
+    figma.ui.postMessage({
+        type: 'paintstyles-scanned',
+        count: paintStyles.length,
+        styles: paintStyles.map(s => ({
+            name: s.name,
+            description: s.description,
+            type: s.paints.length > 0 ? s.paints[0].type : 'UNKNOWN'
+        }))
+    });
+}
+async function handleScanEffectStyles() {
+    var effectStyles = await figma.getLocalEffectStylesAsync();
+    figma.ui.postMessage({
+        type: 'effectstyles-scanned',
+        count: effectStyles.length,
+        styles: effectStyles.map(s => ({
+            name: s.name,
+            description: s.description,
+            type: s.effects.length > 0 ? s.effects[0].type : 'UNKNOWN'
+        }))
     });
 }
 function parseCollectionName(name) {
@@ -407,14 +449,25 @@ async function handleGenerateCSS(options) {
     var nonLinearCandidates = [];
     // Generate CSS with deduplication
     var css = generateCSSOutput(collectionGroups, collections, options, outputtedCSSNames, errors, viewportRelativeVars, viewportCandidates, proportionVars, proportionCandidates, nonLinearVars, nonLinearCandidates);
-    // Append text styles section if enabled
+    // Append styles sections if enabled (text + color + effect)
     var textStyleCount = 0;
     if (options.includeTextStyles) {
+        // Text styles
         var allTextStyles = await figma.getLocalTextStylesAsync();
         textStyleCount = allTextStyles.length;
         var textStyleLines = await generateTextStyleCSS(options, variableMap);
         if (textStyleLines.length > 0) {
             css += '\n' + textStyleLines.join('\n');
+        }
+        // Color (paint) styles
+        var paintStyleLines = await generatePaintStyleCSS(options);
+        if (paintStyleLines.length > 0) {
+            css += '\n' + paintStyleLines.join('\n');
+        }
+        // Effect styles
+        var effectStyleLines = await generateEffectStyleCSS(options);
+        if (effectStyleLines.length > 0) {
+            css += '\n' + effectStyleLines.join('\n');
         }
     }
     var nonRemoteCount = 0;
@@ -1720,5 +1773,226 @@ async function generateTextStyleCSS(options, variableMap) {
     if (options.textStyleFormat === 'css-vars') {
         lines.push('}');
     }
+    return lines;
+}
+// ============================================
+// PAINT (COLOR) STYLE CSS GENERATION
+// ============================================
+function paintToCSS(paint) {
+    if (paint.type === 'SOLID') {
+        var c = paint.color;
+        var opacity = paint.opacity !== undefined ? paint.opacity : 1;
+        var hex = rgbToHex({ r: c.r, g: c.g, b: c.b, a: opacity });
+        if (opacity < 1) {
+            var a = Math.round(opacity * 100) / 100;
+            return 'rgba(' + Math.round(c.r * 255) + ', ' + Math.round(c.g * 255) + ', ' + Math.round(c.b * 255) + ', ' + a + ')';
+        }
+        return hex;
+    }
+    // Gradients and other paint types: return null (skip for now)
+    return null;
+}
+function generatePaintStyleName(name) {
+    return name
+        .replace(/\//g, '-')
+        .replace(/\s+/g, '-')
+        .replace(/[^a-zA-Z0-9-]/g, '')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '')
+        .toLowerCase();
+}
+async function generatePaintStyleCSS(options) {
+    var lines = [];
+    var paintStyles = await figma.getLocalPaintStylesAsync();
+    if (paintStyles.length === 0)
+        return lines;
+    lines.push('/* --------------------------------------------------------------------------');
+    lines.push('   COLOR STYLES — Paint tokens from Figma Color Styles');
+    lines.push('   Format: ' + (options.textStyleFormat === 'scss-mixin' ? 'SCSS Variables' : options.textStyleFormat === 'css-class' ? 'CSS Classes' : 'CSS Custom Properties'));
+    lines.push('   -------------------------------------------------------------------------- */');
+    lines.push('');
+    if (options.textStyleFormat === 'css-vars') {
+        lines.push(':root {');
+        for (var i = 0; i < paintStyles.length; i++) {
+            var style = paintStyles[i];
+            if (style.paints.length === 0)
+                continue;
+            var cssValue = paintToCSS(style.paints[0]);
+            if (!cssValue)
+                continue;
+            var cssName = 'color-' + generatePaintStyleName(style.name);
+            lines.push('  --' + cssName + ': ' + cssValue + ';');
+        }
+        lines.push('}');
+    }
+    else if (options.textStyleFormat === 'scss-mixin') {
+        for (var i = 0; i < paintStyles.length; i++) {
+            var style = paintStyles[i];
+            if (style.paints.length === 0)
+                continue;
+            var cssValue = paintToCSS(style.paints[0]);
+            if (!cssValue)
+                continue;
+            var scssName = 'color-' + generatePaintStyleName(style.name);
+            lines.push('$' + scssName + ': ' + cssValue + ';');
+        }
+    }
+    else {
+        // CSS classes
+        for (var i = 0; i < paintStyles.length; i++) {
+            var style = paintStyles[i];
+            if (style.paints.length === 0)
+                continue;
+            var cssValue = paintToCSS(style.paints[0]);
+            if (!cssValue)
+                continue;
+            var className = 'color-' + generatePaintStyleName(style.name);
+            lines.push('.' + className + ' {');
+            lines.push('  color: ' + cssValue + ';');
+            lines.push('}');
+            lines.push('.' + className + '-bg {');
+            lines.push('  background-color: ' + cssValue + ';');
+            lines.push('}');
+            lines.push('');
+        }
+    }
+    lines.push('');
+    return lines;
+}
+// ============================================
+// EFFECT STYLE CSS GENERATION
+// ============================================
+function effectToCSS(effect) {
+    if (effect.type === 'DROP_SHADOW' || effect.type === 'INNER_SHADOW') {
+        var c = effect.color;
+        var rgba = 'rgba(' + Math.round(c.r * 255) + ', ' + Math.round(c.g * 255) + ', ' + Math.round(c.b * 255) + ', ' + (Math.round(c.a * 100) / 100) + ')';
+        var prefix = effect.type === 'INNER_SHADOW' ? 'inset ' : '';
+        return prefix + effect.offset.x + 'px ' + effect.offset.y + 'px ' + effect.radius + 'px ' + (effect.spread || 0) + 'px ' + rgba;
+    }
+    if (effect.type === 'LAYER_BLUR') {
+        return 'blur(' + effect.radius + 'px)';
+    }
+    if (effect.type === 'BACKGROUND_BLUR') {
+        return 'blur(' + effect.radius + 'px)';
+    }
+    return null;
+}
+function generateEffectStyleName(name) {
+    return name
+        .replace(/\//g, '-')
+        .replace(/\s+/g, '-')
+        .replace(/[^a-zA-Z0-9-]/g, '')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '')
+        .toLowerCase();
+}
+async function generateEffectStyleCSS(options) {
+    var lines = [];
+    var effectStyles = await figma.getLocalEffectStylesAsync();
+    if (effectStyles.length === 0)
+        return lines;
+    lines.push('/* --------------------------------------------------------------------------');
+    lines.push('   EFFECT STYLES — Shadow & blur tokens from Figma Effect Styles');
+    lines.push('   Format: ' + (options.textStyleFormat === 'scss-mixin' ? 'SCSS Variables' : options.textStyleFormat === 'css-class' ? 'CSS Classes' : 'CSS Custom Properties'));
+    lines.push('   -------------------------------------------------------------------------- */');
+    lines.push('');
+    if (options.textStyleFormat === 'css-vars') {
+        lines.push(':root {');
+        for (var i = 0; i < effectStyles.length; i++) {
+            var style = effectStyles[i];
+            if (style.effects.length === 0)
+                continue;
+            // Shadows: combine multiple effects
+            var shadows = [];
+            var blurs = [];
+            for (var j = 0; j < style.effects.length; j++) {
+                var eff = style.effects[j];
+                if (!eff.visible)
+                    continue;
+                var cssVal = effectToCSS(eff);
+                if (!cssVal)
+                    continue;
+                if (eff.type === 'DROP_SHADOW' || eff.type === 'INNER_SHADOW') {
+                    shadows.push(cssVal);
+                }
+                else {
+                    blurs.push(cssVal);
+                }
+            }
+            var cssName = 'effect-' + generateEffectStyleName(style.name);
+            if (shadows.length > 0) {
+                lines.push('  --' + cssName + ': ' + shadows.join(', ') + ';');
+            }
+            if (blurs.length > 0) {
+                lines.push('  --' + cssName + '-blur: ' + blurs.join(' ') + ';');
+            }
+        }
+        lines.push('}');
+    }
+    else if (options.textStyleFormat === 'scss-mixin') {
+        for (var i = 0; i < effectStyles.length; i++) {
+            var style = effectStyles[i];
+            if (style.effects.length === 0)
+                continue;
+            var shadows = [];
+            var blurs = [];
+            for (var j = 0; j < style.effects.length; j++) {
+                var eff = style.effects[j];
+                if (!eff.visible)
+                    continue;
+                var cssVal = effectToCSS(eff);
+                if (!cssVal)
+                    continue;
+                if (eff.type === 'DROP_SHADOW' || eff.type === 'INNER_SHADOW') {
+                    shadows.push(cssVal);
+                }
+                else {
+                    blurs.push(cssVal);
+                }
+            }
+            var scssName = 'effect-' + generateEffectStyleName(style.name);
+            if (shadows.length > 0) {
+                lines.push('$' + scssName + ': ' + shadows.join(', ') + ';');
+            }
+            if (blurs.length > 0) {
+                lines.push('$' + scssName + '-blur: ' + blurs.join(' ') + ';');
+            }
+        }
+    }
+    else {
+        // CSS classes
+        for (var i = 0; i < effectStyles.length; i++) {
+            var style = effectStyles[i];
+            if (style.effects.length === 0)
+                continue;
+            var shadows = [];
+            var blurs = [];
+            for (var j = 0; j < style.effects.length; j++) {
+                var eff = style.effects[j];
+                if (!eff.visible)
+                    continue;
+                var cssVal = effectToCSS(eff);
+                if (!cssVal)
+                    continue;
+                if (eff.type === 'DROP_SHADOW' || eff.type === 'INNER_SHADOW') {
+                    shadows.push(cssVal);
+                }
+                else {
+                    blurs.push(cssVal);
+                }
+            }
+            var className = 'effect-' + generateEffectStyleName(style.name);
+            lines.push('.' + className + ' {');
+            if (shadows.length > 0) {
+                lines.push('  box-shadow: ' + shadows.join(', ') + ';');
+            }
+            if (blurs.length > 0) {
+                lines.push('  filter: ' + blurs.join(' ') + ';');
+            }
+            lines.push('}');
+            lines.push('');
+        }
+    }
+    lines.push('');
     return lines;
 }
