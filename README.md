@@ -23,6 +23,8 @@
 - **CSS Preview Search** - Search and navigate through generated CSS directly in the plugin
 - **Fixed-Value Export Mode** - Raw values per breakpoint without `clamp()` interpolation
 - **Composite Text Style Export** - Export Figma Text Styles as SCSS mixins, CSS classes, or CSS custom properties
+- **Paint & Effect Style Export** - Export Figma Paint and Effect Styles alongside variables
+- **Unified Suite UI** - Shared visual baseline (design tokens, light/dark themes, Help/About dialogs, tooltips) used across the Figma Variable Tools suite
 - **Per-File Settings** - Save/load plugin settings per Figma file via `figma.root.setPluginData()`
 - **Multiple Variable Types** - Supports COLOR, FLOAT, STRING, and BOOLEAN variables
 - **Unitless Number Detection** - Automatically detects font-weight, column-count, opacity, etc. by naming convention

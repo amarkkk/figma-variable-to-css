@@ -277,6 +277,8 @@
         cursor: col-resize;
         background: transparent;
         position: relative;
+        touch-action: none;
+        user-select: none;
       }
       /* Visual 1px separator line — full panel height */
       .resize-handle::before {
@@ -306,6 +308,11 @@
         right: -4px;
         cursor: col-resize;
       }
+      body.is-column-resizing,
+      body.is-column-resizing * {
+        cursor: col-resize !important;
+        user-select: none !important;
+      }
 
       /* Options Panel (column 3) */
       .options-panel {
@@ -332,6 +339,7 @@
         min-width: 0;
       }
       .edge-case-panel.hidden {
+        display: flex !important;
         overflow: hidden;
         visibility: hidden;
         /* Don't use display: none — the 0px grid track handles hiding.
@@ -1445,7 +1453,7 @@
       }
 
       /* Icon Button */
-      .icon-button {
+      .icon-btn {
         width: 28px;
         height: 28px;
         display: inline-flex;
@@ -1463,25 +1471,26 @@
         flex-shrink: 0;
       }
 
-      .icon-button:hover {
+      .icon-btn:hover {
         background: var(--bg-hover);
         color: var(--text-secondary);
       }
-      .icon-button:active {
+      .icon-btn:active {
         background: var(--bg-active);
       }
-      .icon-button:disabled {
-        opacity: 0.5;
+      .icon-btn:disabled {
+        opacity: 0.4;
         cursor: not-allowed;
       }
-      .icon-button:disabled .btn-tooltip {
+      .icon-btn:disabled .tooltip {
         display: none;
       }
-      .icon-button svg {
+      .icon-btn svg {
         pointer-events: none;
       }
 
-      .icon-button .btn-tooltip {
+      /* Tooltips */
+      .tooltip {
         position: absolute;
         bottom: calc(100% + 6px);
         left: 50%;
@@ -1503,25 +1512,129 @@
         box-shadow: var(--shadow-md);
       }
 
-      .icon-button:hover .btn-tooltip {
+      .icon-btn:hover .tooltip,
+      .tooltip-trigger:hover .tooltip {
         opacity: 1;
         visibility: visible;
       }
 
       /* Tooltip directional modifiers (set by TooltipManager JS) */
-      .btn-tooltip.tooltip-bottom {
+      .tooltip-bottom {
         bottom: auto;
         top: calc(100% + 6px);
       }
-      .btn-tooltip.tooltip-left {
+      .tooltip-left {
         left: 0;
         transform: none;
       }
-      .btn-tooltip.tooltip-right {
+      .tooltip-right {
         left: auto;
         right: 0;
         transform: none;
       }
+
+      /* ============================================
+       HELP MODAL
+       ============================================ */
+      .help-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 300;
+        background: rgba(0, 0, 0, 0.35);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      [data-theme="dark"] .help-backdrop {
+        background: rgba(0, 0, 0, 0.55);
+      }
+      .help-modal {
+        /* 520px is the floor; grows proportionally with the plugin window */
+        width: clamp(520px, 58vw, 900px);
+        max-height: 84vh;
+        background: var(--bg-primary);
+        border: 1px solid var(--border-medium);
+        border-radius: var(--radius-lg);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .help-modal-header {
+        display: flex;
+        align-items: center;
+        padding: 12px 16px;
+        background: var(--bg-secondary);
+        border-bottom: 1px solid var(--border-medium);
+        flex-shrink: 0;
+        gap: 12px;
+      }
+      .help-modal-title {
+        font-family: var(--font-mono);
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--text-tertiary);
+        flex: 1;
+      }
+      .help-modal-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px 20px 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        scrollbar-width: none;
+      }
+      .help-modal-body::-webkit-scrollbar { display: none; }
+      .help-section { display: flex; flex-direction: column; gap: 8px; }
+      .help-section-title {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--accent-primary);
+        letter-spacing: 0.05em;
+      }
+      .help-para {
+        font-size: 11px;
+        color: var(--text-secondary);
+        line-height: 1.6;
+      }
+      .help-checklist, .help-steps {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding-left: 18px;
+        margin: 0;
+      }
+      .help-checklist li, .help-steps li {
+        font-size: 11px;
+        color: var(--text-secondary);
+        line-height: 1.6;
+      }
+      .help-term {
+        padding: 10px 12px;
+        background: var(--bg-secondary);
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-subtle);
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .help-term-name {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--text-primary);
+        text-transform: uppercase;
+      }
+      .help-term-def {
+        font-size: 11px;
+        color: var(--text-secondary);
+        line-height: 1.6;
+      }
+      .hidden { display: none !important; }
 
       /* Loading State */
       .loading {
@@ -1554,6 +1667,8 @@
         right: 4px;
         bottom: 4px;
         cursor: nwse-resize;
+        touch-action: none;
+        user-select: none;
         z-index: 10000;
         opacity: 0.4;
         color: var(--text-tertiary);
@@ -2211,10 +2326,101 @@
       </div>
     </div>
 
+    <!-- Help/About modal — elevated dialog toggled by footer buttons -->
+    <div id="info-backdrop" class="help-backdrop" style="display:none;">
+      <div class="help-modal" id="info-modal" role="dialog" aria-modal="true" aria-labelledby="info-modal-title" tabindex="-1">
+        <div class="help-modal-header">
+          <span class="help-modal-title" id="info-modal-title">Help</span>
+          <button class="icon-btn" id="btn-info-close" aria-label="Close dialog" style="width:22px;height:22px;">
+            <svg width="12" height="12" viewBox="0 0 256 256" fill="currentColor"><path d="M204.24,195.76a6,6,0,1,1-8.48,8.48L128,136.49,60.24,204.24a6,6,0,0,1-8.48-8.48L119.51,128,51.76,60.24a6,6,0,0,1,8.48-8.48L128,119.51l67.76-67.75a6,6,0,0,1,8.48,8.48L136.49,128Z"/></svg>
+          </button>
+        </div>
+        <div class="help-modal-body" id="help-modal-body">
+
+          <section class="help-section">
+            <h3 class="help-section-title">What this plugin does</h3>
+            <p class="help-para">Variable to CSS exports Figma variable collections as CSS custom properties. It reads every numeric, color, string, and boolean variable in your file and generates ready-to-use CSS, with full support for fluid <code style="font-family:var(--font-mono);font-size:10px;background:var(--bg-tertiary);padding:1px 4px;border-radius:var(--radius-sm)">clamp()</code> scaling across breakpoints, dark-mode output, and optional typography/color/effect style export.</p>
+          </section>
+
+          <section class="help-section">
+            <h3 class="help-section-title">Before you start</h3>
+            <ul class="help-checklist">
+              <li><strong>Breakpoint mode names matter.</strong> Collections with modes named Desktop, Laptop, Tablet, and Mobile are automatically recognised as breakpoint collections and get fluid <code style="font-family:var(--font-mono);font-size:10px;background:var(--bg-tertiary);padding:1px 4px;border-radius:var(--radius-sm)">clamp()</code> output. Other mode names produce theme or single-value output.</li>
+              <li><strong>Breakpoint values.</strong> The plugin auto-detects breakpoint pixel values from a Dimension Foundations collection if one exists. If not found, editable defaults (1680 / 1366 / 840 / 480 px) are used.</li>
+              <li><strong>Variable naming convention.</strong> Collections following the "Domain - Layer" pattern (e.g. "Typo - 1. Foundations") receive a CSS domain prefix automatically. Mappings collections are output without a prefix.</li>
+            </ul>
+          </section>
+
+          <section class="help-section">
+            <h3 class="help-section-title">How to use it</h3>
+            <ol class="help-steps">
+              <li><strong>Review the Input panel</strong> — it lists every variable collection and style count the plugin detected. Collections update automatically on load.</li>
+              <li><strong>Set options</strong> in the Options panel: choose Fluid (clamp) or Fixed (per-breakpoint) output mode, Mobile-first or Desktop-first media query direction, breakpoint pixel values, and whether to include text/color/effect styles.</li>
+              <li><strong>Click Generate CSS</strong> — the plugin builds the CSS and shows a syntax-highlighted preview in the Output panel. Generation also runs automatically whenever you change an option.</li>
+              <li><strong>Review the Edge Cases panel</strong> (appears after generating) — opt in to Viewport-relative or Piecewise scaling for any detected variables, then click Generate CSS again to apply those choices.</li>
+              <li><strong>Copy or Download</strong> — use the buttons in the footer to copy the full CSS to your clipboard or download it as a <code style="font-family:var(--font-mono);font-size:10px;background:var(--bg-tertiary);padding:1px 4px;border-radius:var(--radius-sm)">.css</code> file.</li>
+            </ol>
+          </section>
+
+          <section class="help-section">
+            <h3 class="help-section-title">Understanding the output</h3>
+            <div class="help-term">
+              <div class="help-term-name">Fluid mode (clamp)</div>
+              <div class="help-term-def">Numeric variables with differing values across breakpoints are output as a single <code style="font-family:var(--font-mono);font-size:10px;background:var(--bg-tertiary);padding:1px 4px;border-radius:var(--radius-sm)">clamp(min, slope, max)</code> expression that scales linearly between your smallest and largest breakpoints. No media queries are needed for these variables.</div>
+            </div>
+            <div class="help-term">
+              <div class="help-term-name">Fixed mode</div>
+              <div class="help-term-def">Every breakpoint value is output as a separate <code style="font-family:var(--font-mono);font-size:10px;background:var(--bg-tertiary);padding:1px 4px;border-radius:var(--radius-sm)">@media</code> block containing the exact pixel value for that viewport range. Use this when you need step-function behaviour instead of fluid scaling.</div>
+            </div>
+            <div class="help-term">
+              <div class="help-term-name">Edge Cases — Piecewise Scaling</div>
+              <div class="help-term-def">Variables whose intermediate breakpoint values deviate from a straight linear interpolation are flagged here. Enabling piecewise scaling produces separate <code style="font-family:var(--font-mono);font-size:10px;background:var(--bg-tertiary);padding:1px 4px;border-radius:var(--radius-sm)">clamp()</code> segments between each adjacent pair of breakpoints, honouring the exact values your design team set.</div>
+            </div>
+            <div class="help-term">
+              <div class="help-term-name">Edge Cases — Viewport-Relative</div>
+              <div class="help-term-def">Variables with "viewport" in their name or description are detected as candidates for <code style="font-family:var(--font-mono);font-size:10px;background:var(--bg-tertiary);padding:1px 4px;border-radius:var(--radius-sm)">min(100vw, max)</code> output instead of clamp, tying the value directly to the full viewport width. Useful for max-width containers and hero section widths.</div>
+            </div>
+            <div class="help-term">
+              <div class="help-term-name">Grid Proportions</div>
+              <div class="help-term-def">Variables with names like "half", "third", "quarter", "two-thirds" etc. are always exported as unitless column counts (e.g. <code style="font-family:var(--font-mono);font-size:10px;background:var(--bg-tertiary);padding:1px 4px;border-radius:var(--radius-sm)">--prop-half: 6</code>) and a companion <code style="font-family:var(--font-mono);font-size:10px;background:var(--bg-tertiary);padding:1px 4px;border-radius:var(--radius-sm)">--prop-half--fr: 6fr</code> value for use in CSS Grid and Flexbox.</div>
+            </div>
+          </section>
+
+        </div>
+        <div class="help-modal-body hidden" id="about-modal-body">
+
+          <section class="help-section">
+            <h3 class="help-section-title">About</h3>
+            <p class="help-para">Variable to CSS converts Figma variable collections into production-ready CSS custom properties, with fluid clamp() scaling, dark-mode media queries, breakpoint detection, and optional style export. It is one of a suite of six Figma variable tools sharing a common design language.</p>
+          </section>
+
+          <section class="help-section">
+            <div class="help-term">
+              <div class="help-term-name">Version</div>
+              <div class="help-term-def">1.7.0</div>
+            </div>
+            <div class="help-term">
+              <div class="help-term-name">Scope</div>
+              <div class="help-term-def">Reads local variable collections and styles in the current Figma file. Remote/library variables are excluded from export.</div>
+            </div>
+            <div class="help-term">
+              <div class="help-term-name">Network</div>
+              <div class="help-term-def">No external network access is requested by the plugin manifest. All processing happens locally in the browser.</div>
+            </div>
+            <div class="help-term">
+              <div class="help-term-name">Settings</div>
+              <div class="help-term-def">Output mode, breakpoint values, style options, column widths, and piecewise selections are persisted per Figma file using pluginData and restored automatically on next open.</div>
+            </div>
+          </section>
+
+        </div>
+      </div>
+    </div>
+
     <div class="footer">
       <div class="footer-left">
-        <button class="icon-button" id="theme-toggle">
-          <span class="btn-tooltip">Toggle theme</span>
+        <button class="icon-btn" id="theme-toggle" aria-label="Toggle theme">
+          <span class="tooltip">Toggle theme</span>
           <svg
             id="sun-icon"
             xmlns="http://www.w3.org/2000/svg"
@@ -2242,40 +2448,28 @@
           </svg>
         </button>
         <button
-          class="icon-button"
-          id="btn-refresh-vars"
-          aria-label="Refresh variables & regenerate CSS"
+          class="icon-btn"
+          id="refresh-btn"
+          aria-label="Refresh variables &amp; regenerate CSS"
         >
-          <span class="btn-tooltip">Refresh variables & regenerate CSS</span>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="18"
-            height="18"
-            fill="currentColor"
-            viewBox="0 0 256 256"
-          >
-            <path
-              d="M222,48V96a6,6,0,0,1-6,6H168a6,6,0,0,1,0-12h33.52L183.47,72a81.51,81.51,0,0,0-57.53-24h-.46A81.5,81.5,0,0,0,68.19,71.28a6,6,0,1,1-8.38-8.58,93.38,93.38,0,0,1,65.67-26.76H126a93.45,93.45,0,0,1,66,27.53l18,18V48a6,6,0,0,1,12,0ZM187.81,184.72a81.5,81.5,0,0,1-57.29,23.34h-.46a81.51,81.51,0,0,1-57.53-24L54.48,166H88a6,6,0,0,0,0-12H40a6,6,0,0,0-6,6v48a6,6,0,0,0,12,0V174.48l18,18.05a93.45,93.45,0,0,0,66,27.53h.52a93.38,93.38,0,0,0,65.67-26.76,6,6,0,1,0-8.38-8.58Z"
-            ></path>
-          </svg>
+          <span class="tooltip">Refresh variables &amp; regenerate CSS</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M222,48V96a6,6,0,0,1-6,6H168a6,6,0,0,1,0-12h33.52L183.47,72a81.51,81.51,0,0,0-57.53-24h-.46A81.5,81.5,0,0,0,68.19,71.28a6,6,0,1,1-8.38-8.58,93.38,93.38,0,0,1,65.67-26.76H126a93.45,93.45,0,0,1,66,27.53l18,18V48a6,6,0,0,1,12,0ZM187.81,184.72a81.5,81.5,0,0,1-57.29,23.34h-.46a81.51,81.51,0,0,1-57.53-24L54.48,166H88a6,6,0,0,0,0-12H40a6,6,0,0,0-6,6v48a6,6,0,0,0,12,0V174.48l18,18.05a93.45,93.45,0,0,0,66,27.53h.52a93.38,93.38,0,0,0,65.67-26.76,6,6,0,1,0-8.38-8.58Z"></path></svg>
         </button>
         <button
-          class="icon-button"
-          id="btn-reset-size"
+          class="icon-btn"
+          id="reset-size-btn"
           aria-label="Reset window size"
         >
-          <span class="btn-tooltip">Reset window size</span>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="18"
-            height="18"
-            fill="currentColor"
-            viewBox="0 0 256 256"
-          >
-            <path
-              d="M146,104V64a6,6,0,0,1,12,0V89.51l45.76-45.75a6,6,0,0,1,8.48,8.48L166.48,98H192a6,6,0,0,1,0,12H152A6,6,0,0,1,146,104Zm-42,42H64a6,6,0,0,0,0,12H89.52L43.76,203.76a6,6,0,1,0,8.48,8.48L98,166.48V192a6,6,0,0,0,12,0V152A6,6,0,0,0,104,146Zm62.48,12H192a6,6,0,0,0,0-12H152a6,6,0,0,0-6,6v40a6,6,0,0,0,12,0V166.48l45.76,45.76a6,6,0,0,0,8.48-8.48ZM104,58a6,6,0,0,0-6,6V89.51L52.24,43.76a6,6,0,0,0-8.48,8.48L89.52,98H64a6,6,0,0,0,0,12h40a6,6,0,0,0,6-6V64A6,6,0,0,0,104,58Z"
-            ></path>
-          </svg>
+          <span class="tooltip">Reset window size</span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M146,104V64a6,6,0,0,1,12,0V89.51l45.76-45.75a6,6,0,0,1,8.48,8.48L166.48,98H192a6,6,0,0,1,0,12H152A6,6,0,0,1,146,104Zm-42,42H64a6,6,0,0,0,0,12H89.52L43.76,203.76a6,6,0,1,0,8.48,8.48L98,166.48V192a6,6,0,0,0,12,0V152A6,6,0,0,0,104,146Zm62.48,12H192a6,6,0,0,0,0-12H152a6,6,0,0,0-6,6v40a6,6,0,0,0,12,0V166.48l45.76,45.76a6,6,0,0,0,8.48-8.48ZM104,58a6,6,0,0,0-6,6V89.51L52.24,43.76a6,6,0,0,0-8.48,8.48L89.52,98H64a6,6,0,0,0,0,12h40a6,6,0,0,0,6-6V64A6,6,0,0,0,104,58Z"></path></svg>
+        </button>
+        <button class="icon-btn" id="btn-help" aria-label="Help">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M140,180a12,12,0,1,1-12-12A12,12,0,0,1,140,180Zm-12-108c-24.26,0-44,17.94-44,40v4a8,8,0,0,0,16,0v-4c0-13.23,12.56-24,28-24s28,10.77,28,24-12.56,24-28,24a8,8,0,0,0-8,8v8a8,8,0,0,0,16,0v-.72C158.18,148.8,176,134.44,176,112,176,89.94,156.26,72,128,72Zm104,56A104,104,0,1,1,128,24,104.11,104.11,0,0,1,232,128Zm-16,0a88,88,0,1,0-88,88A88.1,88.1,0,0,0,216,128Z"/></svg>
+          <span class="tooltip">Help</span>
+        </button>
+        <button class="icon-btn" id="btn-about" aria-label="About">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M128,26A102,102,0,1,0,230,128,102.12,102.12,0,0,0,128,26Zm0,192a90,90,0,1,1,90-90A90.1,90.1,0,0,1,128,218Zm-8-74V112a8,8,0,0,1,16,0v32a8,8,0,0,1-16,0Zm20,36a12,12,0,1,1-12-12A12,12,0,0,1,140,180ZM116,80a12,12,0,1,1,12,12A12,12,0,0,1,116,80Z"/></svg>
+          <span class="tooltip">About</span>
         </button>
         <span class="footer-stats" id="footer-stats"></span>
       </div>
@@ -2412,7 +2606,7 @@
 
       // Footer icon button handlers
       document
-        .getElementById("btn-refresh-vars")
+        .getElementById("refresh-btn")
         .addEventListener("click", function () {
           parent.postMessage(
             { pluginMessage: { type: "scan-collections" } },
@@ -2438,12 +2632,16 @@
         });
 
       document
-        .getElementById("btn-reset-size")
+        .getElementById("reset-size-btn")
         .addEventListener("click", function () {
           parent.postMessage(
-            { pluginMessage: { type: "resize", size: { w: 900, h: 600 } } },
+            { pluginMessage: { type: "resize", size: { w: 1280, h: 720 } } },
             "*",
           );
+          parent.postMessage({ pluginMessage: { type: "persist-size" } }, "*");
+          if (window.ColumnResizeManager) {
+            window.ColumnResizeManager.resetColumns();
+          }
           showToast("Window size reset");
         });
 
@@ -2620,7 +2818,8 @@
 
           // Include non-linear selections
           var selectedNonLinearVars = [];
-          for (var cssName in nonLinearSelections) {
+          for (var i = 0; i < nonLinearCandidates.length; i++) {
+            var cssName = nonLinearCandidates[i].cssName;
             if (nonLinearSelections[cssName]) {
               selectedNonLinearVars.push(cssName);
             }
@@ -2892,6 +3091,9 @@
           edgePanel.classList.add("hidden");
           if (resizeHandle3) resizeHandle3.style.visibility = "hidden";
         }
+        if (window.ColumnResizeManager) {
+          window.ColumnResizeManager.normalize();
+        }
         var totalDetected =
           (viewportCandidates.length || 0) +
           (nonLinearCandidates.length || 0) +
@@ -3030,6 +3232,36 @@
         return collections;
       }
 
+      function pruneNonLinearSelections() {
+        var current = {};
+        for (var i = 0; i < nonLinearCandidates.length; i++) {
+          current[nonLinearCandidates[i].cssName] = true;
+        }
+
+        var changed = false;
+        for (var cssName in nonLinearSelections) {
+          if (!current[cssName]) {
+            delete nonLinearSelections[cssName];
+            changed = true;
+          }
+        }
+        return changed;
+      }
+
+      function getSelectedNonLinearCount() {
+        var selectedCount = 0;
+        for (var i = 0; i < nonLinearCandidates.length; i++) {
+          if (nonLinearSelections[nonLinearCandidates[i].cssName]) {
+            selectedCount++;
+          }
+        }
+        return selectedCount;
+      }
+
+      function hasSelectedNonLinearCandidate() {
+        return getSelectedNonLinearCount() > 0;
+      }
+
       function renderNonLinearCandidates() {
         // Apply any pending saved selections first
         if (window._pendingNonLinearSelections) {
@@ -3039,6 +3271,8 @@
           }
           window._pendingNonLinearSelections = null;
         }
+
+        var prunedSelections = pruneNonLinearSelections();
 
         // Set defaults for any candidates not yet in selections (default OFF = opt-in)
         for (var i = 0; i < nonLinearCandidates.length; i++) {
@@ -3164,16 +3398,15 @@
         });
 
         nonLinearCandidateListEl.innerHTML = html;
-        var selectedCount = Object.values(nonLinearSelections).filter(
-          function (v) {
-            return v;
-          },
-        ).length;
+        var selectedCount = getSelectedNonLinearCount();
         document.getElementById("nonlinear-section-count").textContent =
           selectedCount + "/" + nonLinearCandidates.length;
         updateNonLinearToggleText();
         updateNonLinearCheckboxStates();
         attachValueBarOverlayEvents();
+        if (prunedSelections) {
+          autoSaveSettings();
+        }
       }
 
       function updateNonLinearSelection(checkbox) {
@@ -3186,7 +3419,7 @@
       }
 
       function toggleAllNonLinearSelections() {
-        const anySelected = Object.values(nonLinearSelections).some((v) => v);
+        const anySelected = hasSelectedNonLinearCandidate();
         const newValue = !anySelected;
         for (const candidate of nonLinearCandidates) {
           nonLinearSelections[candidate.cssName] = newValue;
@@ -3263,11 +3496,7 @@
               checkedCount > 0 && checkedCount < candidates.length;
           });
         // Update section badge with selected/total
-        var selectedCount = Object.values(nonLinearSelections).filter(
-          function (v) {
-            return v;
-          },
-        ).length;
+        var selectedCount = getSelectedNonLinearCount();
         document.getElementById("nonlinear-section-count").textContent =
           selectedCount + "/" + nonLinearCandidates.length;
       }
@@ -3275,7 +3504,7 @@
       function updateNonLinearToggleText() {
         const btn = document.getElementById("btn-toggle-nonlinear");
         if (!btn) return;
-        const anySelected = Object.values(nonLinearSelections).some((v) => v);
+        const anySelected = hasSelectedNonLinearCandidate();
         btn.textContent = anySelected ? "Deselect All" : "Select All";
       }
 
@@ -3493,6 +3722,9 @@
             edgePanel.classList.remove("hidden");
             if (resizeHandle3) resizeHandle3.style.visibility = "";
           }
+        }
+        if (window.ColumnResizeManager) {
+          window.ColumnResizeManager.normalize();
         }
 
         // Update the Output Summary card
@@ -3813,24 +4045,130 @@
       // RESIZE HANDLE
       // ============================================
       const corner = document.getElementById("resize-corner");
+      const MIN_RESIZE_WIDTH = 900;
+      const MIN_RESIZE_HEIGHT = 600;
+      const RESIZE_DRAG_THRESHOLD = 2;
+      let isResizing = false;
+      let activeResizePointerId = null;
+      let startX = 0;
+      let startY = 0;
+      let startW = 0;
+      let startH = 0;
+      let hasResizeDrag = false;
+      let queuedResizeFrame = null;
+      let queuedResizeSize = null;
+      let lastResizeSize = null;
 
-      const resizeWindow = (e) => {
-        const size = {
-          w: Math.max(500, Math.floor(e.clientX + 5)),
-          h: Math.max(400, Math.floor(e.clientY + 5)),
+      function clampResizeSize(w, h) {
+        return {
+          w: Math.round(Math.max(MIN_RESIZE_WIDTH, w)),
+          h: Math.round(Math.max(MIN_RESIZE_HEIGHT, h)),
         };
+      }
+
+      function postResizeSize(size) {
         parent.postMessage({ pluginMessage: { type: "resize", size } }, "*");
-      };
+      }
+
+      function queueResize(size) {
+        lastResizeSize = size;
+        queuedResizeSize = size;
+        if (queuedResizeFrame !== null) return;
+
+        queuedResizeFrame = requestAnimationFrame(() => {
+          queuedResizeFrame = null;
+          if (!queuedResizeSize) return;
+          const nextSize = queuedResizeSize;
+          queuedResizeSize = null;
+          postResizeSize(nextSize);
+        });
+      }
+
+      function endResize(shouldPersist = true) {
+        if (!isResizing) return;
+
+        if (queuedResizeFrame !== null) {
+          cancelAnimationFrame(queuedResizeFrame);
+          queuedResizeFrame = null;
+          queuedResizeSize = null;
+        }
+
+        if (hasResizeDrag && lastResizeSize) {
+          postResizeSize(lastResizeSize);
+          if (shouldPersist) {
+            parent.postMessage({ pluginMessage: { type: "persist-size" } }, "*");
+          }
+        }
+
+        const pointerIdToRelease = activeResizePointerId;
+        isResizing = false;
+        activeResizePointerId = null;
+        hasResizeDrag = false;
+        lastResizeSize = null;
+
+        if (
+          pointerIdToRelease !== null &&
+          corner.hasPointerCapture &&
+          corner.hasPointerCapture(pointerIdToRelease)
+        ) {
+          try {
+            corner.releasePointerCapture(pointerIdToRelease);
+          } catch (_) {}
+        }
+      }
 
       corner.addEventListener("pointerdown", (e) => {
-        corner.onpointermove = resizeWindow;
-        corner.setPointerCapture(e.pointerId);
+        if (e.button !== 0) return;
+        isResizing = true;
+        activeResizePointerId = e.pointerId;
+        hasResizeDrag = false;
+        lastResizeSize = null;
+        startX = e.screenX;
+        startY = e.screenY;
+        startW = window.innerWidth;
+        startH = window.innerHeight;
+        try {
+          corner.setPointerCapture(e.pointerId);
+        } catch (_) {}
+        e.preventDefault();
+        e.stopPropagation();
       });
 
-      corner.addEventListener("pointerup", (e) => {
-        corner.onpointermove = null;
-        corner.releasePointerCapture(e.pointerId);
+      function handleResizeMove(e) {
+        if (!isResizing || e.pointerId !== activeResizePointerId) return;
+        if ((e.buttons & 1) !== 1) {
+          endResize(true);
+          return;
+        }
+
+        const dx = e.screenX - startX;
+        const dy = e.screenY - startY;
+        if (!hasResizeDrag && Math.abs(dx) < RESIZE_DRAG_THRESHOLD && Math.abs(dy) < RESIZE_DRAG_THRESHOLD) {
+          return;
+        }
+
+        hasResizeDrag = true;
+        queueResize(clampResizeSize(startW + dx, startH + dy));
+        e.preventDefault();
+        e.stopPropagation();
+      }
+
+      function handleResizeEnd(e) {
+        if (e.pointerId !== activeResizePointerId) return;
+        endResize(true);
+        e.preventDefault();
+        e.stopPropagation();
+      }
+
+      corner.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
       });
+      document.addEventListener("pointermove", handleResizeMove, true);
+      document.addEventListener("pointerup", handleResizeEnd, true);
+      window.addEventListener("pointerup", handleResizeEnd, true);
+      document.addEventListener("mouseup", () => endResize(true), true);
+      window.addEventListener("blur", () => endResize(true));
 
       // ============================================
       // DETECTION PANEL RESIZE HANDLE
@@ -3883,57 +4221,166 @@
       // ============================================
       // COLUMN RESIZE HANDLES
       // ============================================
-      (function setupColumnResizeHandles() {
+      window.ColumnResizeManager = (function setupColumnResizeHandles() {
         var mainLayout = document.getElementById("main-layout");
-        var handles = [
-          document.getElementById("resize-handle-1"),
-          document.getElementById("resize-handle-2"),
-          document.getElementById("resize-handle-3"),
-        ];
-
-        // Map each handle to the CSS custom property and panel it controls
-        // Each handle adjusts the panel to its LEFT
         var handleConfig = [
           { prop: "--col-input", panelId: "panel-input", min: 80 },
           { prop: "--col-options", panelId: "panel-options", min: 140 },
           { prop: "--col-edge", panelId: "panel-edge", min: 120 },
         ];
+        var outputConfig = { prop: "--col-output", panelId: "panel-output", min: 240 };
 
-        handles.forEach(function (handle, index) {
+        function getActiveColumnConfig() {
+          var configs = [handleConfig[0], handleConfig[1]];
+          if (mainLayout.classList.contains("has-edge-cases")) {
+            configs.push(handleConfig[2]);
+          }
+          configs.push(outputConfig);
+          return configs;
+        }
+
+        function normalize() {
+          if (!mainLayout) return;
+          requestAnimationFrame(function () {
+            var configs = getActiveColumnConfig();
+            var widths = configs.map(function (config) {
+              var panel = document.getElementById(config.panelId);
+              return panel ? panel.offsetWidth : 0;
+            });
+            var total = widths.reduce(function (sum, width) {
+              return sum + width;
+            }, 0);
+            if (total <= 0) return;
+
+            configs.forEach(function (config, index) {
+              mainLayout.style.setProperty(
+                config.prop,
+                ((widths[index] / total) * configs.length).toFixed(4) + "fr",
+              );
+            });
+
+            if (!mainLayout.classList.contains("has-edge-cases")) {
+              mainLayout.style.removeProperty("--col-edge");
+            }
+          });
+        }
+
+        function applyPixelWidths(configs, widths) {
+          configs.forEach(function (columnConfig, columnIndex) {
+            mainLayout.style.setProperty(
+              columnConfig.prop,
+              Math.max(columnConfig.min, Math.round(widths[columnIndex])) + "px",
+            );
+          });
+          if (!mainLayout.classList.contains("has-edge-cases")) {
+            mainLayout.style.removeProperty("--col-edge");
+          }
+        }
+
+        function setEqualColumns() {
+          var configs = getActiveColumnConfig();
+          configs.forEach(function (columnConfig) {
+            mainLayout.style.setProperty(columnConfig.prop, "1fr");
+          });
+          if (!mainLayout.classList.contains("has-edge-cases")) {
+            mainLayout.style.removeProperty("--col-edge");
+          }
+        }
+
+        function resetColumns() {
+          if (!mainLayout) return;
+          setEqualColumns();
+          if (typeof autoSaveSettings === "function") {
+            autoSaveSettings();
+          }
+        }
+
+        handleConfig.forEach(function (config, index) {
+          var handle = document.getElementById("resize-handle-" + (index + 1));
           if (!handle) return;
-          var config = handleConfig[index];
 
           handle.addEventListener("pointerdown", function (e) {
+            if (e.button !== 0) return;
             e.preventDefault();
-            var startX = e.clientX;
-            var panel = document.getElementById(config.panelId);
-            var startWidth = panel.offsetWidth;
+            e.stopPropagation();
+            var configs = getActiveColumnConfig();
+            var targetIndex = configs.findIndex(function (columnConfig) {
+              return columnConfig.prop === config.prop;
+            });
+            var rightIndex = targetIndex + 1;
+            if (targetIndex < 0 || rightIndex >= configs.length) return;
+            var startX = e.screenX;
+            var startWidths = configs.map(function (columnConfig) {
+              var panel = document.getElementById(columnConfig.panelId);
+              return panel ? panel.offsetWidth : columnConfig.min;
+            });
+            var pointerId = e.pointerId;
+            var isDragging = true;
             handle.classList.add("dragging");
-            handle.setPointerCapture(e.pointerId);
-
-            // Prevent text selection and iframe stealing events
-            document.body.style.userSelect = "none";
-            document.body.style.cursor = "col-resize";
+            document.body.classList.add("is-column-resizing");
+            applyPixelWidths(configs, startWidths);
 
             function onMove(ev) {
-              var delta = ev.clientX - startX;
-              var newWidth = Math.max(config.min, startWidth + delta);
-              mainLayout.style.setProperty(config.prop, newWidth + "px");
+              if (!isDragging || ev.pointerId !== pointerId) return;
+              if ((ev.buttons & 1) !== 1) {
+                onUp(ev);
+                return;
+              }
+              var rawDelta = ev.screenX - startX;
+              var minDelta = configs[targetIndex].min - startWidths[targetIndex];
+              var maxDelta = startWidths[rightIndex] - configs[rightIndex].min;
+              var delta = Math.max(minDelta, Math.min(maxDelta, rawDelta));
+              var nextWidths = startWidths.slice();
+              nextWidths[targetIndex] = startWidths[targetIndex] + delta;
+              nextWidths[rightIndex] = startWidths[rightIndex] - delta;
+              applyPixelWidths(configs, nextWidths);
+              ev.preventDefault();
+              ev.stopPropagation();
             }
 
             function onUp(ev) {
+              if (!isDragging) return;
+              if (ev.pointerId !== undefined && ev.pointerId !== pointerId) return;
+              isDragging = false;
               handle.classList.remove("dragging");
-              handle.removeEventListener("pointermove", onMove);
-              handle.removeEventListener("pointerup", onUp);
-              handle.releasePointerCapture(ev.pointerId);
-              document.body.style.userSelect = "";
-              document.body.style.cursor = "";
+              document.removeEventListener("pointermove", onMove, true);
+              document.removeEventListener("pointerup", onUp, true);
+              document.removeEventListener("pointercancel", onUp, true);
+              window.removeEventListener("pointerup", onUp, true);
+              window.removeEventListener("blur", onWindowBlur, true);
+              document.removeEventListener("mouseup", onMouseUp, true);
+              document.body.classList.remove("is-column-resizing");
+              normalize();
+              if (typeof autoSaveSettings === "function") {
+                autoSaveSettings();
+              }
+              if (ev.preventDefault) ev.preventDefault();
+              if (ev.stopPropagation) ev.stopPropagation();
             }
 
-            handle.addEventListener("pointermove", onMove);
-            handle.addEventListener("pointerup", onUp);
+            function onMouseUp() {
+              onUp({ pointerId: pointerId });
+            }
+
+            function onWindowBlur() {
+              onUp({ pointerId: pointerId });
+            }
+
+            document.addEventListener("pointermove", onMove, true);
+            document.addEventListener("pointerup", onUp, true);
+            document.addEventListener("pointercancel", onUp, true);
+            window.addEventListener("pointerup", onUp, true);
+            window.addEventListener("blur", onWindowBlur, true);
+            document.addEventListener("mouseup", onMouseUp, true);
           });
         });
+
+        resetColumns();
+
+        return {
+          normalize: normalize,
+          resetColumns: resetColumns,
+        };
       })();
 
       // ============================================
@@ -3977,10 +4424,12 @@
             input: mainLayout.style.getPropertyValue("--col-input") || "",
             options: mainLayout.style.getPropertyValue("--col-options") || "",
             edge: mainLayout.style.getPropertyValue("--col-edge") || "",
+            output: mainLayout.style.getPropertyValue("--col-output") || "",
           },
           nonLinearSelections: (function () {
             var selected = [];
-            for (var cssName in nonLinearSelections) {
+            for (var i = 0; i < nonLinearCandidates.length; i++) {
+              var cssName = nonLinearCandidates[i].cssName;
               if (nonLinearSelections[cssName]) {
                 selected.push(cssName);
               }
@@ -4067,6 +4516,11 @@
             );
           if (s.columnWidths.edge)
             mainLayout.style.setProperty("--col-edge", s.columnWidths.edge);
+          if (s.columnWidths.output)
+            mainLayout.style.setProperty("--col-output", s.columnWidths.output);
+          if (window.ColumnResizeManager) {
+            window.ColumnResizeManager.normalize();
+          }
         }
         // Non-linear selections (deferred — applied when candidates are detected after Generate CSS)
         if (s.nonLinearSelections && Array.isArray(s.nonLinearSelections)) {
@@ -4131,11 +4585,10 @@
         // Reset legacy fallbacks
         var legacyCheckbox = document.getElementById("includeLegacyFallbacks");
         if (legacyCheckbox) legacyCheckbox.checked = false;
-        // Clear column widths
-        var mainLayout = document.getElementById("main-layout");
-        mainLayout.style.removeProperty("--col-input");
-        mainLayout.style.removeProperty("--col-options");
-        mainLayout.style.removeProperty("--col-edge");
+        // Reset column proportions to the baseline layout.
+        if (window.ColumnResizeManager) {
+          window.ColumnResizeManager.resetColumns();
+        }
         // Clear non-linear selections and collapse state
         nonLinearSelections = {};
         nonLinearCollapseState = {};
@@ -4191,9 +4644,9 @@
       // ============================================
       const TooltipManager = (() => {
         function init() {
-          document.querySelectorAll(".icon-button").forEach((trigger) => {
+          document.querySelectorAll(".icon-btn").forEach((trigger) => {
             trigger.addEventListener("mouseenter", () => {
-              const tooltip = trigger.querySelector(".btn-tooltip");
+              const tooltip = trigger.querySelector(".tooltip");
               if (!tooltip) return;
               // Reset modifiers
               tooltip.classList.remove(
@@ -4229,6 +4682,73 @@
         }
         return { init };
       })();
+
+      // ============================================
+      // HELP / ABOUT OVERLAY
+      // ============================================
+      const infoBackdrop = document.getElementById('info-backdrop');
+      const infoModal    = document.getElementById('info-modal');
+      const infoTitle    = document.getElementById('info-modal-title');
+      const helpBody     = document.getElementById('help-modal-body');
+      const aboutBody    = document.getElementById('about-modal-body');
+      const btnInfoClose = document.getElementById('btn-info-close');
+      let lastDialogTrigger = null;
+
+      function dialogFocusable() {
+        return Array.from(infoModal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'))
+          .filter(el => !el.disabled && el.offsetParent !== null);
+      }
+
+      function openInfoDialog(kind, trigger) {
+        lastDialogTrigger = trigger || document.activeElement;
+        const isAbout = kind === 'about';
+        infoTitle.textContent = isAbout ? 'About' : 'Help';
+        helpBody.classList.toggle('hidden', isAbout);
+        aboutBody.classList.toggle('hidden', !isAbout);
+        infoBackdrop.style.display = 'flex';
+        infoModal.focus();
+      }
+
+      function closeInfoDialog() {
+        infoBackdrop.style.display = 'none';
+        if (lastDialogTrigger && typeof lastDialogTrigger.focus === 'function') {
+          lastDialogTrigger.focus();
+        }
+        lastDialogTrigger = null;
+      }
+
+      document.getElementById('btn-help').addEventListener('click', (e) => openInfoDialog('help', e.currentTarget));
+      document.getElementById('btn-about').addEventListener('click', (e) => openInfoDialog('about', e.currentTarget));
+      btnInfoClose.addEventListener('click', closeInfoDialog);
+      infoBackdrop.addEventListener('click', (e) => {
+        if (!infoModal.contains(e.target)) closeInfoDialog();
+      });
+      document.addEventListener('keydown', (e) => {
+        if (infoBackdrop.style.display === 'none') return;
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          closeInfoDialog();
+          return;
+        }
+        if (e.key !== 'Tab') return;
+
+        const focusable = dialogFocusable();
+        if (focusable.length === 0) {
+          e.preventDefault();
+          infoModal.focus();
+          return;
+        }
+
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }, true);
 
       // ============================================
       // INITIALIZATION

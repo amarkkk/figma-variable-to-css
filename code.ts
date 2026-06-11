@@ -166,11 +166,53 @@ var THEME_MODES = ['light', 'dark'];
 // INITIALIZATION
 // ============================================
 
-figma.showUI(__html__, { width: 900, height: 600, themeColors: true });
+var currentWindowSize = { w: 1280, h: 720 };
+var windowSizePersistTimer: any = null;
+
+function clampWindowSize(size: any) {
+  var minWidth = 900;
+  var minHeight = 600;
+  var width = typeof size?.w === 'number' ? size.w : currentWindowSize.w;
+  var height = typeof size?.h === 'number' ? size.h : currentWindowSize.h;
+
+  return {
+    w: Math.max(minWidth, Math.round(width)),
+    h: Math.max(minHeight, Math.round(height))
+  };
+}
+
+function persistWindowSize() {
+  figma.clientStorage.setAsync('windowSize', currentWindowSize).catch(function() {});
+}
+
+function scheduleWindowSizePersist() {
+  if (windowSizePersistTimer !== null) {
+    clearTimeout(windowSizePersistTimer);
+  }
+
+  windowSizePersistTimer = setTimeout(function() {
+    windowSizePersistTimer = null;
+    persistWindowSize();
+  }, 250);
+}
+
+function persistWindowSizeNow() {
+  if (windowSizePersistTimer !== null) {
+    clearTimeout(windowSizePersistTimer);
+    windowSizePersistTimer = null;
+  }
+
+  persistWindowSize();
+}
+
+figma.showUI(__html__, { width: 1280, height: 720, themeColors: true });
 
 // Restore window size
 figma.clientStorage.getAsync('windowSize').then(function(size: any) {
-  if (size) figma.ui.resize(size.w, size.h);
+  if (size) {
+    currentWindowSize = clampWindowSize(size);
+    figma.ui.resize(currentWindowSize.w, currentWindowSize.h);
+  }
 }).catch(function() {});
 
 // Restore theme
@@ -185,10 +227,14 @@ figma.clientStorage.getAsync('theme').then(function(theme: any) {
 figma.ui.onmessage = async function(msg: any) {
   try {
     if (msg.type === 'resize') {
-      var w = Math.max(500, msg.size.w);
-      var h = Math.max(400, msg.size.h);
-      figma.ui.resize(w, h);
-      figma.clientStorage.setAsync('windowSize', { w: w, h: h });
+      currentWindowSize = clampWindowSize(msg.size);
+      figma.ui.resize(currentWindowSize.w, currentWindowSize.h);
+      scheduleWindowSizePersist();
+      return;
+    }
+
+    if (msg.type === 'persist-size') {
+      persistWindowSizeNow();
       return;
     }
 
